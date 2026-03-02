@@ -495,7 +495,8 @@
                 groupTotals[group] = devs.reduce((sum, d) => sum + (latestMap[d]?.value || 0), 0);
             });
 
-            const factoryTotal = groupTotals["全廠"] || 0;
+            // 修正：總用電 = 一號高壓盤 + 二號高壓盤
+            const factoryTotal = (groupTotals["一號高壓盤"] || 0) + (groupTotals["二號高壓盤"] || 0);
 
             return (
                 <div>
@@ -541,6 +542,7 @@
 
         // 群組詳細頁
         function GroupDetailPage({ groupName }) {
+            const { useMemo } = React;
             const decodedGroup = decodeURIComponent(groupName);
             const [devices, setDevices] = useState({});
             const [latest, setLatest] = useState([]);
@@ -608,6 +610,23 @@
                 return history.reduce((sum, d) => sum + (d.value * timeIntervalHours), 0);
             };
 
+            // 使用 useMemo 緩存 groupData，防止圖表頻繁重新渲染
+            const groupData = useMemo(() => {
+                if (Object.keys(deviceHistory).length === 0) return [];
+                const timeMap = {};
+                Object.values(deviceHistory).forEach(data => {
+                    data.forEach(d => {
+                        if (!timeMap[d.label]) {
+                            timeMap[d.label] = 0;
+                        }
+                        timeMap[d.label] += d.value;
+                    });
+                });
+                return Object.entries(timeMap)
+                    .map(([label, value]) => ({ label, value }))
+                    .sort((a, b) => a.label.localeCompare(b.label));
+            }, [deviceHistory]);
+
             return (
                 <div>
                     <button className="back-button" onClick={() => window.location.hash = '/'}>← 返回首頁</button>
@@ -617,21 +636,8 @@
                         <div className="factory-total-value">{groupTotal.toFixed(1)}</div>
                         <div style={{ color: '#94a3b8' }}>kW</div>
                         <div className="chart-container">
-                            {Object.keys(deviceHistory).length > 0 ? (
-                                (() => {
-                                    // 合併所有設備的數據
-                                    const timeMap = {};
-                                    Object.values(deviceHistory).forEach(data => {
-                                        data.forEach(d => {
-                                            if (!timeMap[d.label]) {
-                                                timeMap[d.label] = 0;
-                                            }
-                                            timeMap[d.label] += d.value;
-                                        });
-                                    });
-                                    const groupData = Object.entries(timeMap).map(([label, value]) => ({ label, value }));
-                                    return groupData.length > 0 ? <LineChart data={groupData} /> : <div className="loading" style={{ height: '100%' }}>無數據</div>;
-                                })()
+                            {groupData.length > 0 ? (
+                                <LineChart data={groupData} />
                             ) : (
                                 <div className="loading" style={{ height: '100%' }}>載入圖表...</div>
                             )}
