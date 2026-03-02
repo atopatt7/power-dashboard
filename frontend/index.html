@@ -492,11 +492,17 @@
 
             const groupTotals = {};
             Object.entries(devices.groups || {}).forEach(([group, devs]) => {
-                groupTotals[group] = devs.reduce((sum, d) => sum + (latestMap[d]?.value || 0), 0);
+                // 特殊處理：高壓盤組別只計算一號+二號的總功率
+                if (group === "高壓盤") {
+                    const panel1 = latestMap["一號高壓盤總功率"]?.value || 0;
+                    const panel2 = latestMap["二號高壓盤總功率"]?.value || 0;
+                    groupTotals[group] = panel1 + panel2;
+                } else {
+                    groupTotals[group] = devs.reduce((sum, d) => sum + (latestMap[d]?.value || 0), 0);
+                }
             });
 
-            // 修正：總用電 = 一號高壓盤 + 二號高壓盤
-            const factoryTotal = (groupTotals["一號高壓盤"] || 0) + (groupTotals["二號高壓盤"] || 0);
+            const factoryTotal = groupTotals["全廠"] || 0;
 
             return (
                 <div>
