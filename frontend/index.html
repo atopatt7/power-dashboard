@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>電力監控儀表板 | Power Monitoring Dashboard</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        :root {
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --bg-card: #1e293b;
+            --border: #334155;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --accent-blue: #3b82f6;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body, #root { height: 100%; width: 100%; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft JhengHei', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+        }
+
+        .app-container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        .header {
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+            padding: 16px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .header h1 {
+            font-size: 20px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .header h1:hover { opacity: 0.8; }
+
+        .header-info {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: var(--text-secondary);
+        }
+
+        .factory-total {
+            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+            border: 2px solid var(--accent-blue);
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .factory-total-value {
+            font-size: 40px;
+            font-weight: 800;
+            color: var(--accent-blue);
+            margin: 10px 0;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin-top: 15px;
+            background: var(--bg-primary);
+            border-radius: 8px;
+            padding: 10px;
+        }
+
+        .groups-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .group-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 16px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .group-card:hover {
+            border-color: var(--accent-blue);
+            transform: translateY(-2px);
+        }
+
+        .group-card-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .group-card-value {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--accent-blue);
+            margin-bottom: 10px;
+        }
+
+        .small-chart-container {
+            position: relative;
+            height: 150px;
+            margin-top: 10px;
+        }
+
+        .back-button {
+            display: inline-block;
+            padding: 8px 12px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text-primary);
+            cursor: pointer;
+            margin-bottom: 20px;
+        }
+
+        .back-button:hover {
+            background: var(--accent-blue);
+            border-color: var(--accent-blue);
+        }
+
+        .devices-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 16px;
+        }
+
+        .device-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 16px;
+        }
+
+        .device-name {
+            font-weight: 600;
+            margin-bottom: 12px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .device-metrics {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+
+        .metric {
+            background: var(--bg-primary);
+            padding: 10px;
+            border-radius: 6px;
+            text-align: center;
+        }
+
+        .metric-label {
+            font-size: 11px;
+            color: var(--text-secondary);
+            margin-bottom: 4px;
+        }
+
+        .metric-value {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--accent-blue);
+        }
+
+        .metric-unit {
+            font-size: 10px;
+            color: var(--text-secondary);
+        }
+
+        .device-chart {
+            position: relative;
+            height: 200px;
+            margin-top: 12px;
+        }
+
+        @media (max-width: 768px) {
+            .groups-grid { grid-template-columns: 1fr; }
+            .devices-list { grid-template-columns: 1fr; }
+            .device-metrics { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div id="root">
+        <div class="app-container">
+            <div class="header">
+                <h1>⚡ 電力監控儀表板</h1>
+                <div class="header-info">載入中...</div>
+            </div>
+            <div class="content">
+                <div class="loading">正在初始化系統...</div>
+            </div>
+        </div>
+    </div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        const API_BASE = window.location.origin;
+        const GROUP_ICONS = {
+            "全廠": "🏭", "高壓盤": "⚡", "洗砂設備": "🌊",
+            "集塵設備": "💨", "空壓設備": "🔵", "電爐設備": "🔥",
+            "砂回收設備": "♻️", "辦公室用電": "🏢", "FMS設備": "🎯",
+        };
+
+        // 圖表幫助函數
+        function LineChart({ data, height = 300 }) {
+            const canvasRef = useRef(null);
+            const chartRef = useRef(null);
+
+            useEffect(() => {
+                if (!canvasRef.current || !data || data.length === 0) return;
+
+                const ctx = canvasRef.current.getContext('2d');
+
+                // 銷毀舊圖表
+                if (chartRef.current) {
+                    chartRef.current.destroy();
+                }
+
+                chartRef.current = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: data.map(d => d.label || ''),
+                        datasets: [{
+                            label: '功率 (kW)',
+                            data: data.map(d => d.value),
+                            borderColor: '#3b82f6',
+                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                            borderWidth: 2,
+                            pointRadius: 0,
+                            tension: 0.3,
+                            fill: true,
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                backgroundColor: '#1e293b',
+                                borderColor: '#334155',
+                                borderWidth: 1,
+                                titleColor: '#f1f5f9',
+                                bodyColor: '#94a3b8',
+                            }
+                        },
+                        scales: {
+                            x: {
+                                display: true,
+                                grid: { color: 'rgba(52, 65, 85, 0.2)' },
+                                ticks: { color: '#94a3b8', font: { size: 11 }, maxRotation: 45 }
+                            },
+                            y: {
+                                display: true,
+                                grid: { color: 'rgba(52, 65, 85, 0.2)' },
+                                ticks: { color: '#94a3b8' }
+                            }
+                        }
+                    }
+                });
+
+                return () => {
+                    if (chartRef.current) {
+                        chartRef.current.destroy();
+                    }
+                };
+            }, [data]);
+
+            return <canvas ref={canvasRef} style={{ height: `${height}px` }} />;
+        }
+
+        // 時間格式化函數 - 使用台灣時區 (UTC+8)
+        function formatTime(timestamp) {
+            // 後端返回的是 UTC 時間，轉換為台灣時間 (UTC+8)
+            // 手動解析字符串以確保 UTC 解析
+            const parts = timestamp.split('T');
+            const dateParts = parts[0].split('-');
+            const timeParts = parts[1].split(':');
+
+            const year = parseInt(dateParts[0]);
+            const month = parseInt(dateParts[1]);
+            const day = parseInt(dateParts[2]);
+            const hour = parseInt(timeParts[0]);
+            const minute = parseInt(timeParts[1]);
+            const second = parseFloat(timeParts[2]);
+
+            // 使用 Date.UTC 創建 UTC 時間
+            const utcDate = new Date(Date.UTC(year, month - 1, day, hour, minute, Math.floor(second)));
+            const utcHour = utcDate.getUTCHours();
+
+            // 加上 8 小時，處理跨天的情況
+            let taiwanHour = utcHour + 8;
+            let taiwanDay = day;
+            let taiwanMonth = month;
+
+            if (taiwanHour >= 24) {
+                taiwanHour -= 24;
+                taiwanDay += 1;
+                if (taiwanDay > 31) {
+                    taiwanDay = 1;
+                    taiwanMonth += 1;
+                }
+            }
+
+            const monthStr = String(taiwanMonth).padStart(2, '0');
+            const dayStr = String(taiwanDay).padStart(2, '0');
+            const hourStr = String(taiwanHour).padStart(2, '0');
+            const minuteStr = String(minute).padStart(2, '0');
+
+            return `${monthStr}-${dayStr} ${hourStr}:${minuteStr}`;
+        }
+
+        // 取得台灣時間的完整時間字符串（用於頭部顯示）
+        function getTaiwanTimeString() {
+            const now = new Date();
+
+            // 從 UTC 提取時間並加上 8 小時
+            let utcHour = now.getUTCHours();
+            let utcMinute = now.getUTCMinutes();
+            let utcSecond = now.getUTCSeconds();
+
+            // 加上 8 小時
+            let taiwanHour = utcHour + 8;
+            if (taiwanHour >= 24) {
+                taiwanHour -= 24;
+            }
+
+            const hour = String(taiwanHour).padStart(2, '0');
+            const minute = String(utcMinute).padStart(2, '0');
+            const second = String(utcSecond).padStart(2, '0');
+
+            return `${hour}:${minute}:${second}`;
+        }
+
+        // 數據採樣函數 - 每10分鐘取一個數據點
+        function sampleDataEvery10Minutes(data) {
+            if (!data || data.length === 0) return [];
+
+            const sampled = [];
+            let lastTimestamp = null;
+            const tenMinutesMs = 10 * 60 * 1000; // 10分鐘的毫秒數
+
+            for (const point of data) {
+                const timestamp = new Date(point.timestamp || point.label).getTime();
+
+                if (lastTimestamp === null || timestamp - lastTimestamp >= tenMinutesMs) {
+                    sampled.push(point);
+                    lastTimestamp = timestamp;
+                }
+            }
+
+            return sampled;
+        }
+
+        // 首頁組件
+        function HomePage() {
+            const [devices, setDevices] = useState({});
+            const [latest, setLatest] = useState([]);
+            const [historyData, setHistoryData] = useState({});
+            const [isOnline, setIsOnline] = useState(false);
+            const [lastUpdate, setLastUpdate] = useState(null);
+
+            useEffect(() => {
+                fetch(`${API_BASE}/api/devices`)
+                    .then(r => r.json())
+                    .then(d => setDevices(d))
+                    .catch(e => console.error(e));
+            }, []);
+
+            useEffect(() => {
+                const fetchLatest = async () => {
+                    try {
+                        const r = await fetch(`${API_BASE}/api/latest`);
+                        const d = await r.json();
+                        setLatest(d.data || []);
+                        setIsOnline(true);
+                        setLastUpdate(new Date());
+                    } catch (e) {
+                        setIsOnline(false);
+                    }
+                };
+                fetchLatest();
+                const interval = setInterval(fetchLatest, 10000);
+                return () => clearInterval(interval);
+            }, []);
+
+            useEffect(() => {
+                const loadHistory = async () => {
+                    try {
+                        // 加載全廠總用電
+                        const r = await fetch(`${API_BASE}/api/power-history?device=%E5%85%A8%E5%BB%A0%E7%B8%BD%E7%94%A8%E9%9B%BB&days=7&limit=1000`);
+                        const d = await r.json();
+                        const rawFactoryData = (d.data || [])
+                            .reverse()
+                            .map(r => ({
+                                timestamp: r.timestamp,
+                                label: formatTime(r.timestamp),
+                                value: r.value
+                            }));
+                        const factoryData = sampleDataEvery10Minutes(rawFactoryData);
+
+                        const history = { factory: factoryData };
+
+                        // 加載每個分組的數據
+                        if (devices.groups) {
+                            for (const [groupName, groupDevs] of Object.entries(devices.groups)) {
+                                // 並行加載所有設備的數據
+                                const promises = groupDevs.map(dev =>
+                                    fetch(`${API_BASE}/api/power-history?device=${encodeURIComponent(dev)}&days=7&limit=1000`)
+                                        .then(r => r.json())
+                                        .then(d => d.data || [])
+                                        .catch(() => [])
+                                );
+
+                                const allData = await Promise.all(promises);
+
+                                // 合併所有時間戳的數據
+                                const timeMap = {};
+                                allData.forEach(deviceData => {
+                                    deviceData.forEach(r => {
+                                        const timestamp = r.timestamp;
+                                        if (!timeMap[timestamp]) {
+                                            timeMap[timestamp] = 0;
+                                        }
+                                        timeMap[timestamp] += r.value;
+                                    });
+                                });
+
+                                // 轉換為圖表數據
+                                const rawGroupData = Object.entries(timeMap)
+                                    .map(([ts, val]) => ({
+                                        timestamp: ts,
+                                        label: formatTime(ts),
+                                        value: val
+                                    }))
+                                    .sort((a, b) => a.timestamp.localeCompare(b.timestamp));
+
+                                // 應用10分鐘採樣
+                                const groupData = sampleDataEvery10Minutes(rawGroupData);
+                                history[groupName] = groupData;
+                            }
+                        }
+
+                        setHistoryData(history);
+                    } catch (e) {
+                        console.error(e);
+                    }
+                };
+
+                if (devices.groups && Object.keys(devices.groups).length > 0) {
+                    loadHistory();
+                }
+            }, [devices.groups]);
+
+            const latestMap = {};
+            latest.forEach(r => { latestMap[r.device_name] = r; });
+
+            const groupTotals = {};
+            Object.entries(devices.groups || {}).forEach(([group, devs]) => {
+                groupTotals[group] = devs.reduce((sum, d) => sum + (latestMap[d]?.value || 0), 0);
+            });
+
+            const factoryTotal = groupTotals["全廠"] || 0;
+
+            return (
+                <div>
+                    <div className="factory-total">
+                        <div style={{ fontSize: '14px', color: '#94a3b8', marginBottom: '8px' }}>全廠總用電</div>
+                        <div className="factory-total-value">{factoryTotal.toFixed(1)}</div>
+                        <div style={{ color: '#94a3b8' }}>kW</div>
+                        <div className="chart-container">
+                            {historyData.factory ? (
+                                <LineChart data={historyData.factory} />
+                            ) : (
+                                <div className="loading" style={{ height: '100%' }}>載入圖表...</div>
+                            )}
+                        </div>
+                    </div>
+
+                    <div className="groups-grid">
+                        {Object.entries(devices.groups || {}).map(([group, devs]) => (
+                            <div
+                                key={group}
+                                className="group-card"
+                                onClick={() => window.location.hash = `/group/${encodeURIComponent(group)}`}
+                            >
+                                <div className="group-card-title">{GROUP_ICONS[group]} {group}</div>
+                                <div style={{ fontSize: '12px', color: '#94a3b8', marginBottom: '8px' }}>{devs.length} 項設備</div>
+                                <div className="group-card-value">{(groupTotals[group] || 0).toFixed(1)}</div>
+                                <div style={{ color: '#94a3b8', marginBottom: '10px' }}>kW</div>
+                                <div className="small-chart-container">
+                                    {historyData[group] && historyData[group].length > 0 ? (
+                                        <LineChart data={historyData[group]} height={150} />
+                                    ) : (
+                                        <div style={{ color: '#94a3b8', textAlign: 'center', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px' }}>
+                                            載入中...
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            );
+        }
+
+        // 群組詳細頁
+        function GroupDetailPage({ groupName }) {
+            const decodedGroup = decodeURIComponent(groupName);
+            const [devices, setDevices] = useState({});
+            const [latest, setLatest] = useState([]);
+            const [deviceHistory, setDeviceHistory] = useState({});
+
+            useEffect(() => {
+                fetch(`${API_BASE}/api/devices`)
+                    .then(r => r.json())
+                    .then(d => setDevices(d))
+                    .catch(e => console.error(e));
+            }, []);
+
+            useEffect(() => {
+                const fetchLatest = async () => {
+                    try {
+                        const r = await fetch(`${API_BASE}/api/latest`);
+                        const d = await r.json();
+                        setLatest(d.data || []);
+                    } catch (e) {
+                        console.error(e);
+                    }
+                };
+                fetchLatest();
+                const interval = setInterval(fetchLatest, 10000);
+                return () => clearInterval(interval);
+            }, []);
+
+            useEffect(() => {
+                const loadHistory = async () => {
+                    const groupDevs = devices.groups?.[decodedGroup] || [];
+                    const history = {};
+
+                    for (const dev of groupDevs) {
+                        try {
+                            const r = await fetch(`${API_BASE}/api/power-history?device=${encodeURIComponent(dev)}&days=7&limit=1000`);
+                            const d = await r.json();
+                            const rawData = (d.data || [])
+                                .reverse()
+                                .map(r => ({
+                                    timestamp: r.timestamp,
+                                    label: formatTime(r.timestamp),
+                                    value: r.value
+                                }));
+                            history[dev] = sampleDataEvery10Minutes(rawData);
+                        } catch (e) {
+                            console.error(e);
+                        }
+                    }
+                    setDeviceHistory(history);
+                };
+                if (devices.groups?.[decodedGroup]) {
+                    loadHistory();
+                }
+            }, [devices.groups, decodedGroup]);
+
+            const latestMap = {};
+            latest.forEach(r => { latestMap[r.device_name] = r; });
+
+            const groupDevs = devices.groups?.[decodedGroup] || [];
+            const groupTotal = groupDevs.reduce((sum, d) => sum + (latestMap[d]?.value || 0), 0);
+
+            const calculateCumulative = (history) => {
+                if (!history || history.length === 0) return 0;
+                const timeIntervalHours = 10 / 3600;
+                return history.reduce((sum, d) => sum + (d.value * timeIntervalHours), 0);
+            };
+
+            return (
+                <div>
+                    <button className="back-button" onClick={() => window.location.hash = '/'}>← 返回首頁</button>
+
+                    <div className="factory-total">
+                        <div style={{ fontSize: '14px', color: '#94a3b8', marginBottom: '8px' }}>{GROUP_ICONS[decodedGroup]} {decodedGroup} - 分組總用電</div>
+                        <div className="factory-total-value">{groupTotal.toFixed(1)}</div>
+                        <div style={{ color: '#94a3b8' }}>kW</div>
+                        <div className="chart-container">
+                            {Object.keys(deviceHistory).length > 0 ? (
+                                (() => {
+                                    // 合併所有設備的數據
+                                    const timeMap = {};
+                                    Object.values(deviceHistory).forEach(data => {
+                                        data.forEach(d => {
+                                            if (!timeMap[d.label]) {
+                                                timeMap[d.label] = 0;
+                                            }
+                                            timeMap[d.label] += d.value;
+                                        });
+                                    });
+                                    const groupData = Object.entries(timeMap).map(([label, value]) => ({ label, value }));
+                                    return groupData.length > 0 ? <LineChart data={groupData} /> : <div className="loading" style={{ height: '100%' }}>無數據</div>;
+                                })()
+                            ) : (
+                                <div className="loading" style={{ height: '100%' }}>載入圖表...</div>
+                            )}
+                        </div>
+                    </div>
+
+                    <div className="devices-list">
+                        {groupDevs.map(dev => {
+                            const reading = latestMap[dev];
+                            const history = deviceHistory[dev] || [];
+                            const cumulative = calculateCumulative(history);
+
+                            return (
+                                <div key={dev} className="device-card">
+                                    <div className="device-name">{dev}</div>
+                                    <div className="device-metrics">
+                                        <div className="metric">
+                                            <div className="metric-label">即時用電</div>
+                                            <div className="metric-value">{reading ? reading.value.toFixed(1) : '—'}</div>
+                                            <div className="metric-unit">kW</div>
+                                        </div>
+                                        <div className="metric">
+                                            <div className="metric-label">7日累計</div>
+                                            <div className="metric-value">{cumulative.toFixed(1)}</div>
+                                            <div className="metric-unit">kWh</div>
+                                        </div>
+                                    </div>
+                                    <div className="device-chart">
+                                        {history.length > 0 ? (
+                                            <LineChart data={history} height={200} />
+                                        ) : (
+                                            <div className="loading" style={{ height: '100%' }}>載入圖表...</div>
+                                        )}
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            );
+        }
+
+        // 主應用
+        function App() {
+            const [page, setPage] = useState('/');
+            const [groupName, setGroupName] = useState(null);
+            const [onlineStatus, setOnlineStatus] = useState('✓ 即時連線');
+            const [lastUpdate, setLastUpdate] = useState(new Date());
+            const [, forceUpdate] = useState(0); // 強制重新渲染時間
+
+            useEffect(() => {
+                const handleHash = () => {
+                    const hash = window.location.hash.slice(1) || '/';
+                    if (hash.startsWith('/group/')) {
+                        setPage('/group');
+                        setGroupName(hash.replace('/group/', ''));
+                    } else {
+                        setPage('/');
+                    }
+                    setLastUpdate(new Date());
+                };
+
+                handleHash();
+                window.addEventListener('hashchange', handleHash);
+                return () => window.removeEventListener('hashchange', handleHash);
+            }, []);
+
+            // 每秒更新一次時間顯示
+            useEffect(() => {
+                const interval = setInterval(() => {
+                    forceUpdate(prev => prev + 1);
+                }, 1000);
+                return () => clearInterval(interval);
+            }, []);
+
+            return (
+                <div className="app-container">
+                    <div className="header">
+                        <h1 onClick={() => window.location.hash = '/'}>⚡ 電力監控儀表板</h1>
+                        <div className="header-info">
+                            {onlineStatus} | 更新於 {getTaiwanTimeString()}
+                        </div>
+                    </div>
+                    <div className="content">
+                        {page === '/' ? (
+                            <HomePage />
+                        ) : (
+                            <GroupDetailPage groupName={groupName} />
+                        )}
+                    </div>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>

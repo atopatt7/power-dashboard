@@ -1,0 +1,10 @@
+# 此项目使用 Python 标准库，无额外依赖
+# Python 3.8+ 内置所有必需的模块
+
+# 标准库（无需安装）：
+# - http.server (HTTP 服务器)
+# - sqlite3 (数据库)
+# - threading (后台线程)
+# - json (JSON 处理)
+# - datetime (日期时间)
+# - urllib (URL 解析)

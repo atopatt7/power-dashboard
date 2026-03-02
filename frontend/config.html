@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>系統設定 | Power Monitoring Configuration</title>
+    <style>
+        :root {
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --bg-card: #1e293b;
+            --border: #334155;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --accent-blue: #3b82f6;
+            --accent-green: #22c55e;
+            --accent-red: #ef4444;
+            --accent-yellow: #eab308;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft JhengHei', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .header {
+            margin-bottom: 40px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            font-weight: 600;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .header p {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .nav-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 24px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .nav-tab {
+            padding: 12px 20px;
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 14px;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .nav-tab:hover {
+            color: var(--text-primary);
+        }
+
+        .nav-tab.active {
+            color: var(--accent-blue);
+            border-bottom-color: var(--accent-blue);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .section {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 24px;
+            margin-bottom: 20px;
+        }
+
+        .section-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 500;
+            margin-bottom: 6px;
+            color: var(--text-primary);
+        }
+
+        .form-group small {
+            display: block;
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        input[type="text"],
+        input[type="password"],
+        input[type="email"],
+        select {
+            flex: 1;
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            padding: 10px 12px;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border-color 0.2s;
+        }
+
+        input[type="text"]:focus,
+        input[type="password"]:focus,
+        input[type="email"]:focus,
+        select:focus {
+            outline: none;
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+        }
+
+        .toggle-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            background: rgba(59, 130, 246, 0.1);
+            border-radius: 6px;
+            border: 1px solid var(--border);
+        }
+
+        .toggle {
+            position: relative;
+            width: 50px;
+            height: 28px;
+            background: var(--border);
+            border-radius: 14px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .toggle.active {
+            background: var(--accent-green);
+        }
+
+        .toggle::after {
+            content: '';
+            position: absolute;
+            width: 24px;
+            height: 24px;
+            background: white;
+            border-radius: 50%;
+            top: 2px;
+            left: 2px;
+            transition: left 0.2s;
+        }
+
+        .toggle.active::after {
+            left: 24px;
+        }
+
+        .toggle-label {
+            font-size: 14px;
+            color: var(--text-primary);
+            cursor: pointer;
+            flex: 1;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 24px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 10px 16px;
+            border-radius: 6px;
+            border: none;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: var(--accent-blue);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #2563eb;
+        }
+
+        .btn-success {
+            background: var(--accent-green);
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #16a34a;
+        }
+
+        .btn-secondary {
+            background: var(--border);
+            color: var(--text-primary);
+        }
+
+        .btn-secondary:hover {
+            background: #475569;
+        }
+
+        .btn-danger {
+            background: var(--accent-red);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+
+        .status-box {
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 16px;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-success {
+            background: rgba(34, 197, 94, 0.1);
+            border: 1px solid var(--accent-green);
+            color: var(--accent-green);
+        }
+
+        .status-error {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid var(--accent-red);
+            color: var(--accent-red);
+        }
+
+        .status-info {
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid var(--accent-blue);
+            color: var(--accent-blue);
+        }
+
+        .status-icon {
+            font-size: 16px;
+        }
+
+        .link-button {
+            display: inline-block;
+            color: var(--accent-blue);
+            text-decoration: none;
+            cursor: pointer;
+            border: none;
+            background: none;
+            font-size: 14px;
+            padding: 0;
+        }
+
+        .link-button:hover {
+            text-decoration: underline;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .info-item {
+            background: rgba(59, 130, 246, 0.05);
+            border: 1px solid var(--border);
+            padding: 12px;
+            border-radius: 6px;
+            font-size: 13px;
+        }
+
+        .info-item strong {
+            color: var(--accent-blue);
+        }
+
+        .back-link {
+            display: inline-block;
+            color: var(--accent-blue);
+            text-decoration: none;
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+
+        .back-link:hover {
+            text-decoration: underline;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        @media (max-width: 768px) {
+            .grid-2 {
+                grid-template-columns: 1fr;
+            }
+
+            .header h1 {
+                font-size: 24px;
+            }
+
+            .nav-tabs {
+                overflow-x: auto;
+            }
+
+            .container {
+                padding: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="/" class="back-link">← 返回儀表板</a>
+
+        <div class="header">
+            <h1>⚙️ 系統設定</h1>
+            <p>Power Monitoring Dashboard - 配置管理</p>
+        </div>
+
+        <div class="nav-tabs">
+            <button class="nav-tab active" data-tab="mock">Mock 模式</button>
+            <button class="nav-tab" data-tab="powerbi">Power BI 設定</button>
+            <button class="nav-tab" data-tab="status">系統狀態</button>
+        </div>
+
+        <!-- Mock 模式 Tab -->
+        <div id="mock" class="tab-content active">
+            <div class="section">
+                <div class="section-title">📊 數據源設定</div>
+
+                <div class="form-group">
+                    <label>選擇數據源</label>
+                    <div class="toggle-container">
+                        <div class="toggle active" id="mockToggle"></div>
+                        <span class="toggle-label" id="toggleLabel">Mock 模式 (測試數據)</span>
+                    </div>
+                    <small>開啟 Mock 模式會使用生成的測試數據。關閉後將連接 Power BI API。</small>
+                </div>
+
+                <div class="status-box status-info" id="mockStatus">
+                    <span class="status-icon">ℹ️</span>
+                    <span>目前模式：正在載入...</span>
+                </div>
+
+                <div class="button-group">
+                    <button class="btn-primary" onclick="toggleMockMode()">切換模式</button>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">Mock 模式說明</div>
+                <p style="font-size: 14px; line-height: 1.6; color: var(--text-secondary);">
+                    Mock 模式提供完全的測試環境，無需任何 Power BI 認證。系統會自動生成符合各設備群組特性的虛擬數據：
+                </p>
+                <div class="info-grid" style="margin-top: 16px;">
+                    <div class="info-item">
+                        <strong>✓ 無需配置</strong><br>
+                        直接啟動，無需任何認證密鑰
+                    </div>
+                    <div class="info-item">
+                        <strong>✓ 自動保存</strong><br>
+                        所有數據保存至 SQLite
+                    </div>
+                    <div class="info-item">
+                        <strong>✓ 實時更新</strong><br>
+                        每 10 秒自動生成新數據
+                    </div>
+                    <div class="info-item">
+                        <strong>✓ 時間模擬</strong><br>
+                        工作時間負載增加 20%
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Power BI 設定 Tab -->
+        <div id="powerbi" class="tab-content">
+            <div class="section">
+                <div class="section-title">🔐 Power BI 認證信息</div>
+                <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 16px;">
+                    填入你的 Azure/Power BI 認證信息。所有信息將加密保存到本地配置文件。
+                </p>
+
+                <form id="powerbiForm">
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <label for="clientId">Power BI Client ID *</label>
+                            <input type="text" id="clientId" placeholder="e.g., abc12345-1234-1234-1234-abc123456789" />
+                            <small>Azure AD 應用程式 ID</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="tenantId">Tenant ID *</label>
+                            <input type="text" id="tenantId" placeholder="e.g., abc12345-1234-1234-1234-abc123456789" />
+                            <small>Azure AD 租戶 ID</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="username">使用者名稱 *</label>
+                            <input type="email" id="username" placeholder="user@company.onmicrosoft.com" />
+                            <small>Power BI 帳戶或服務帳號</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="password">密碼 *</label>
+                            <input type="password" id="password" placeholder="••••••••" />
+                            <small>帳戶密碼（ROPC 流程）</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="datasetId">Dataset ID *</label>
+                            <input type="text" id="datasetId" placeholder="e.g., abc12345-abcd-1234-abcd-abc123456789" />
+                            <small>Power BI 資料集 ID</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="groupId">Group ID (Workspace) *</label>
+                            <input type="text" id="groupId" placeholder="e.g., abc12345-abcd-1234-abcd-abc123456789" />
+                            <small>Power BI 工作區/群組 ID</small>
+                        </div>
+                    </div>
+
+                    <div id="powerbiStatus"></div>
+
+                    <div class="button-group">
+                        <button type="button" class="btn-primary" onclick="testPowerBiConnection()">
+                            🔗 測試連接
+                        </button>
+                        <button type="button" class="btn-success" onclick="savePowerBiConfig()">
+                            💾 保存設定
+                        </button>
+                        <button type="button" class="btn-secondary" onclick="loadPowerBiConfig()">
+                            ↻ 重新載入
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="section">
+                <div class="section-title">📖 設置步驟</div>
+                <ol style="font-size: 13px; line-height: 1.8; color: var(--text-secondary);">
+                    <li><strong>在 Azure AD 註冊應用程式</strong>
+                        <ul style="margin-top: 6px; margin-left: 20px;">
+                            <li>前往 <a href="https://portal.azure.com" target="_blank" style="color: var(--accent-blue);">Azure Portal</a></li>
+                            <li>應用程式註冊 → 新增註冊</li>
+                            <li>複製應用程式 ID (Client ID) 和租戶 ID</li>
+                        </ul>
+                    </li>
+                    <li style="margin-top: 12px;"><strong>獲取 Power BI 資料集信息</strong>
+                        <ul style="margin-top: 6px; margin-left: 20px;">
+                            <li>開啟 Power BI Web</li>
+                            <li>選擇工作區 (Group ID 在 URL 中)</li>
+                            <li>選擇資料集，Dataset ID 在 URL 或設定中</li>
+                        </ul>
+                    </li>
+                    <li style="margin-top: 12px;"><strong>設置服務帳號密碼</strong>
+                        <ul style="margin-top: 6px; margin-left: 20px;">
+                            <li>建立專用服務帳號或使用現有帳號</li>
+                            <li>為 Power BI 資料集設定「編輯」權限</li>
+                        </ul>
+                    </li>
+                </ol>
+            </div>
+        </div>
+
+        <!-- 系統狀態 Tab -->
+        <div id="status" class="tab-content">
+            <div class="section">
+                <div class="section-title">📈 系統狀態</div>
+                <div id="statusContent">正在載入系統狀態...</div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">🔧 快速操作</div>
+                <div class="button-group">
+                    <button class="btn-secondary" onclick="refreshStatus()">
+                        ↻ 重新整理狀態
+                    </button>
+                    <button class="btn-secondary" onclick="viewLogs()">
+                        📋 查看日誌
+                    </button>
+                    <button class="btn-danger" onclick="resetDatabase()">
+                        🗑️ 清除資料庫
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = window.location.origin;
+
+        // ─── Tab Navigation ──────────────────────
+        document.querySelectorAll('.nav-tab').forEach(tab => {
+            tab.addEventListener('click', (e) => {
+                const tabName = e.target.dataset.tab;
+                switchTab(tabName);
+            });
+        });
+
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.nav-tab').forEach(el => el.classList.remove('active'));
+
+            document.getElementById(tabName).classList.add('active');
+            event.target.classList.add('active');
+
+            if (tabName === 'status') {
+                refreshStatus();
+            }
+        }
+
+        // ─── Mock Mode Toggle ────────────────────
+        document.getElementById('mockToggle').addEventListener('click', toggleMockMode);
+
+        async function loadMockStatus() {
+            try {
+                const res = await fetch(`${API_BASE}/api/config`);
+                const data = await res.json();
+
+                const isUseMock = data.use_mock_data || false;
+                const toggle = document.getElementById('mockToggle');
+                const label = document.getElementById('toggleLabel');
+                const status = document.getElementById('mockStatus');
+
+                toggle.classList.toggle('active', isUseMock);
+                label.textContent = isUseMock ? 'Mock 模式 (測試數據)' : 'Power BI 模式 (實時數據)';
+
+                if (isUseMock) {
+                    status.className = 'status-box status-info';
+                    status.innerHTML = '<span class="status-icon">✓</span><span>目前使用 Mock 模式</span>';
+                } else {
+                    status.className = 'status-box status-success';
+                    status.innerHTML = '<span class="status-icon">✓</span><span>目前使用 Power BI 連接</span>';
+                }
+            } catch (e) {
+                console.error('Failed to load mock status:', e);
+            }
+        }
+
+        async function toggleMockMode() {
+            try {
+                const currentStatus = document.getElementById('mockToggle').classList.contains('active');
+                const newStatus = !currentStatus;
+
+                const res = await fetch(`${API_BASE}/api/config/set-mode`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ use_mock_data: newStatus })
+                });
+
+                if (res.ok) {
+                    loadMockStatus();
+                    showNotification('模式已切換，請重啟伺服器使其生效', 'success');
+                } else {
+                    showNotification('切換失敗，請重試', 'error');
+                }
+            } catch (e) {
+                showNotification('錯誤：' + e.message, 'error');
+            }
+        }
+
+        // ─── Power BI Config ─────────────────────
+        async function loadPowerBiConfig() {
+            try {
+                const res = await fetch(`${API_BASE}/api/config`);
+                const data = await res.json();
+
+                document.getElementById('clientId').value = data.powerbi_client_id || '';
+                document.getElementById('tenantId').value = data.powerbi_tenant_id || '';
+                document.getElementById('username').value = data.powerbi_username || '';
+                document.getElementById('password').value = data.powerbi_password || '';
+                document.getElementById('datasetId').value = data.powerbi_dataset_id || '';
+                document.getElementById('groupId').value = data.powerbi_group_id || '';
+
+                showNotification('設定已載入', 'info');
+            } catch (e) {
+                showNotification('載入失敗：' + e.message, 'error');
+            }
+        }
+
+        async function savePowerBiConfig() {
+            const config = {
+                powerbi_client_id: document.getElementById('clientId').value.trim(),
+                powerbi_tenant_id: document.getElementById('tenantId').value.trim(),
+                powerbi_username: document.getElementById('username').value.trim(),
+                powerbi_password: document.getElementById('password').value,
+                powerbi_dataset_id: document.getElementById('datasetId').value.trim(),
+                powerbi_group_id: document.getElementById('groupId').value.trim(),
+            };
+
+            // Validation
+            const errors = [];
+            if (!config.powerbi_client_id) errors.push('Client ID 不能為空');
+            if (!config.powerbi_tenant_id) errors.push('Tenant ID 不能為空');
+            if (!config.powerbi_username) errors.push('使用者名稱不能為空');
+            if (!config.powerbi_password) errors.push('密碼不能為空');
+            if (!config.powerbi_dataset_id) errors.push('Dataset ID 不能為空');
+            if (!config.powerbi_group_id) errors.push('Group ID 不能為空');
+
+            if (errors.length > 0) {
+                showNotification('驗證失敗：\n' + errors.join('\n'), 'error');
+                return;
+            }
+
+            try {
+                const res = await fetch(`${API_BASE}/api/config`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(config)
+                });
+
+                if (res.ok) {
+                    showNotification('設定已保存。請重啟伺服器以啟用 Power BI 模式。', 'success');
+                } else {
+                    showNotification('保存失敗，請重試', 'error');
+                }
+            } catch (e) {
+                showNotification('錯誤：' + e.message, 'error');
+            }
+        }
+
+        async function testPowerBiConnection() {
+            const config = {
+                powerbi_client_id: document.getElementById('clientId').value.trim(),
+                powerbi_tenant_id: document.getElementById('tenantId').value.trim(),
+                powerbi_username: document.getElementById('username').value.trim(),
+                powerbi_password: document.getElementById('password').value,
+                powerbi_dataset_id: document.getElementById('datasetId').value.trim(),
+                powerbi_group_id: document.getElementById('groupId').value.trim(),
+            };
+
+            try {
+                const res = await fetch(`${API_BASE}/api/config/test-connection`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(config)
+                });
+
+                const result = await res.json();
+                if (result.success) {
+                    showNotification('✓ Power BI 連接成功！', 'success');
+                } else {
+                    showNotification('✗ 連接失敗：' + result.error, 'error');
+                }
+            } catch (e) {
+                showNotification('測試錯誤：' + e.message, 'error');
+            }
+        }
+
+        // ─── System Status ───────────────────────
+        async function refreshStatus() {
+            try {
+                const res = await fetch(`${API_BASE}/api/health`);
+                const data = await res.json();
+
+                let html = `
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <strong>伺服器狀態</strong><br>
+                            ${data.status === 'ok' ? '✓ 正常運行' : '✗ 異常'}
+                        </div>
+                        <div class="info-item">
+                            <strong>運行模式</strong><br>
+                            ${data.mock_mode ? 'Mock 模式' : 'Power BI 模式'}
+                        </div>
+                        <div class="info-item">
+                            <strong>輪詢間隔</strong><br>
+                            ${data.poll_interval} 秒
+                        </div>
+                        <div class="info-item">
+                            <strong>伺服器時間</strong><br>
+                            ${new Date(data.timestamp).toLocaleString('zh-TW')}
+                        </div>
+                    </div>
+                `;
+
+                document.getElementById('statusContent').innerHTML = html;
+            } catch (e) {
+                document.getElementById('statusContent').innerHTML = `<div class="status-box status-error"><span class="status-icon">✗</span><span>無法連接伺服器</span></div>`;
+            }
+        }
+
+        function viewLogs() {
+            alert('日誌功能將在後續版本支援。目前請查看伺服器輸出：\n\nps aux | grep main.py\ntail -f /tmp/server.log');
+        }
+
+        async function resetDatabase() {
+            if (!confirm('確定要清除所有資料庫數據嗎？此操作不可逆。')) {
+                return;
+            }
+
+            try {
+                const res = await fetch(`${API_BASE}/api/config/reset-db`, {
+                    method: 'POST'
+                });
+
+                if (res.ok) {
+                    showNotification('資料庫已清除，伺服器將重新開始記錄數據。', 'success');
+                } else {
+                    showNotification('清除失敗', 'error');
+                }
+            } catch (e) {
+                showNotification('錯誤：' + e.message, 'error');
+            }
+        }
+
+        // ─── Notifications ───────────────────────
+        function showNotification(message, type = 'info') {
+            const box = document.createElement('div');
+            box.className = `status-box status-${type}`;
+
+            const icons = { success: '✓', error: '✗', info: 'ℹ️' };
+            box.innerHTML = `<span class="status-icon">${icons[type]}</span><span>${message}</span>`;
+
+            document.body.appendChild(box);
+            box.style.position = 'fixed';
+            box.style.bottom = '20px';
+            box.style.right = '20px';
+            box.style.zIndex = '9999';
+            box.style.minWidth = '300px';
+
+            setTimeout(() => {
+                box.style.opacity = '0';
+                box.style.transition = 'opacity 0.3s';
+                setTimeout(() => box.remove(), 300);
+            }, 3000);
+        }
+
+        // ─── Initialize ──────────────────────────
+        window.addEventListener('load', () => {
+            loadMockStatus();
+        });
+    </script>
+</body>
+</html>

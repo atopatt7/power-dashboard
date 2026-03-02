@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>時間轉換測試 V2</title>
+    <style>
+        body {
+            background: #1a1a2e;
+            color: #eee;
+            font-family: monospace;
+            padding: 20px;
+            line-height: 1.8;
+        }
+        .box {
+            background: #0f3460;
+            padding: 15px;
+            margin: 10px 0;
+            border-left: 3px solid #16c784;
+            font-size: 16px;
+        }
+        h3 { color: #16c784; }
+        .correct { color: #22c55e; }
+        .wrong { color: #ef4444; }
+        pre { background: #000; padding: 10px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>時間轉換測試 V2 (新版)</h1>
+
+    <div class="box">
+        <h3>步驟 1: 解析 UTC 時間戳</h3>
+        <pre id="step1"></pre>
+    </div>
+
+    <div class="box">
+        <h3>步驟 2: 提取 UTC 時間部分</h3>
+        <pre id="step2"></pre>
+    </div>
+
+    <div class="box">
+        <h3>步驟 3: 加上 8 小時</h3>
+        <pre id="step3"></pre>
+    </div>
+
+    <div class="box">
+        <h3>最終轉換結果</h3>
+        <pre id="result"></pre>
+    </div>
+
+    <div class="box">
+        <h3>當前系統台灣時間</h3>
+        <pre id="systemTaiwan"></pre>
+    </div>
+
+    <script>
+        // 測試時間戳
+        const testTimestamp = '2026-03-02T05:51:57.176321';
+        const expectedResult = '03-02 13:51';
+
+        // Step 1: 解析
+        const date = new Date(testTimestamp);
+        document.getElementById('step1').innerHTML = `
+輸入時間戳: ${testTimestamp}
+解析後的 Date 對象: ${date.toString()}
+getTime() 結果: ${date.getTime()}
+        `.trim();
+
+        // Step 2: 提取 UTC 部分
+        const utcHour = date.getUTCHours();
+        const utcDay = date.getUTCDate();
+        const utcMonth = date.getUTCMonth() + 1;
+        const utcMinute = date.getUTCMinutes();
+
+        document.getElementById('step2').innerHTML = `
+UTC 月份: ${utcMonth}
+UTC 日期: ${utcDay}
+UTC 小時: ${utcHour}
+UTC 分鐘: ${utcMinute}
+        `.trim();
+
+        // Step 3: 加 8 小時
+        let taiwanHour = utcHour + 8;
+        let taiwanDay = utcDay;
+        let taiwanMonth = utcMonth;
+
+        if (taiwanHour >= 24) {
+            taiwanHour -= 24;
+            taiwanDay += 1;
+        }
+
+        document.getElementById('step3').innerHTML = `
+UTC 小時 (${utcHour}) + 8 小時 = ${utcHour + 8}
+是否 >= 24? ${utcHour + 8 >= 24}
+最終台灣小時: ${taiwanHour}
+最終台灣日期: ${taiwanDay}
+最終台灣月份: ${taiwanMonth}
+        `.trim();
+
+        // 最終結果
+        const month = String(taiwanMonth).padStart(2, '0');
+        const day = String(taiwanDay).padStart(2, '0');
+        const hour = String(taiwanHour).padStart(2, '0');
+        const minute = String(utcMinute).padStart(2, '0');
+        const result = `${month}-${day} ${hour}:${minute}`;
+
+        const isCorrect = result === expectedResult;
+        document.getElementById('result').innerHTML = `
+轉換結果: ${result}
+預期結果: ${expectedResult}
+正確嗎? <span class="${isCorrect ? 'correct' : 'wrong'}">${isCorrect ? '✓ 是' : '✗ 否'}</span>
+        `.trim();
+
+        // 系統台灣時間
+        const now = new Date();
+        const systemUtcHour = now.getUTCHours();
+        let systemTaiwanHour = systemUtcHour + 8;
+        if (systemTaiwanHour >= 24) {
+            systemTaiwanHour -= 24;
+        }
+        const systemHour = String(systemTaiwanHour).padStart(2, '0');
+        const systemMinute = String(now.getUTCMinutes()).padStart(2, '0');
+        const systemSecond = String(now.getUTCSeconds()).padStart(2, '0');
+
+        document.getElementById('systemTaiwan').innerHTML = `
+當前台灣時間: ${systemHour}:${systemMinute}:${systemSecond}
+當前 UTC 時間: ${now.toISOString()}
+        `.trim();
+
+        // 每秒更新系統時間
+        setInterval(() => {
+            const now = new Date();
+            const systemUtcHour = now.getUTCHours();
+            let systemTaiwanHour = systemUtcHour + 8;
+            if (systemTaiwanHour >= 24) {
+                systemTaiwanHour -= 24;
+            }
+            const systemHour = String(systemTaiwanHour).padStart(2, '0');
+            const systemMinute = String(now.getUTCMinutes()).padStart(2, '0');
+            const systemSecond = String(now.getUTCSeconds()).padStart(2, '0');
+            document.getElementById('systemTaiwan').innerHTML = `
+當前台灣時間: ${systemHour}:${systemMinute}:${systemSecond}
+當前 UTC 時間: ${now.toISOString()}
+            `.trim();
+        }, 1000);
+    </script>
+</body>
+</html>

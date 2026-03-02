@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>時間轉換測試 V3 (終極版)</title>
+    <style>
+        body {
+            background: #1a1a2e;
+            color: #eee;
+            font-family: monospace;
+            padding: 20px;
+            line-height: 1.8;
+        }
+        .box {
+            background: #0f3460;
+            padding: 15px;
+            margin: 10px 0;
+            border-left: 3px solid #16c784;
+            font-size: 16px;
+        }
+        h3 { color: #16c784; }
+        .correct { color: #22c55e; font-weight: bold; }
+        .wrong { color: #ef4444; font-weight: bold; }
+        pre {
+            background: #000;
+            padding: 10px;
+            overflow-x: auto;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <h1>時間轉換測試 V3 (終極診斷)</h1>
+
+    <div class="box">
+        <h3>測試輸入</h3>
+        <pre id="input"></pre>
+    </div>
+
+    <div class="box">
+        <h3>JavaScript 內置解析</h3>
+        <pre id="parsing"></pre>
+    </div>
+
+    <div class="box">
+        <h3>手動解析（確保 UTC）</h3>
+        <pre id="manual"></pre>
+    </div>
+
+    <div class="box">
+        <h3>最終轉換結果</h3>
+        <pre id="final"></pre>
+    </div>
+
+    <script>
+        const testTimestamp = '2026-03-02T05:51:57.176321';
+        const expectedResult = '03-02 13:51';
+
+        // 方法 1: 使用內置 new Date()
+        console.log('=== 方法 1: new Date() ===');
+        const date1 = new Date(testTimestamp);
+        const hour1 = date1.getUTCHours();
+        console.log('getUTCHours():', hour1);
+        console.log('getTime():', date1.getTime());
+
+        document.getElementById('parsing').innerHTML = `
+使用 new Date('${testTimestamp}')
+getTime(): ${date1.getTime()}
+getUTCHours(): ${hour1}
+getUTCMinutes(): ${date1.getUTCMinutes()}
+toString(): ${date1.toString()}
+toISOString(): ${date1.toISOString()}
+        `.trim();
+
+        // 方法 2: 手動解析字符串
+        console.log('\n=== 方法 2: 手動解析 ===');
+        const parts = testTimestamp.split('T');
+        const dateParts = parts[0].split('-'); // 2026-03-02
+        const timeParts = parts[1].split(':');  // 05:51:57.176321
+        const year = parseInt(dateParts[0]);
+        const month = parseInt(dateParts[1]);
+        const day = parseInt(dateParts[2]);
+        const hour = parseInt(timeParts[0]);
+        const minute = parseInt(timeParts[1]);
+        const second = parseFloat(timeParts[2]);
+
+        console.log('手動解析結果:', { year, month, day, hour, minute, second });
+
+        // 創建 UTC 時間
+        const utcDate = new Date(Date.UTC(year, month - 1, day, hour, minute, Math.floor(second)));
+        const utcHour = utcDate.getUTCHours();
+
+        document.getElementById('manual').innerHTML = `
+手動分解字符串 '${testTimestamp}'
+年: ${year}
+月: ${month}
+日: ${day}
+時: ${hour}
+分: ${minute}
+秒: ${second}
+
+使用 Date.UTC() 創建:
+getUTCHours(): ${utcHour}
+getTime(): ${utcDate.getTime()}
+toISOString(): ${utcDate.toISOString()}
+        `.trim();
+
+        // 轉換為台灣時間
+        let taiwanHour = utcHour + 8;
+        let taiwanDay = day;
+        let taiwanMonth = month;
+
+        if (taiwanHour >= 24) {
+            taiwanHour -= 24;
+            taiwanDay += 1;
+        }
+
+        const result = `${String(taiwanMonth).padStart(2, '0')}-${String(taiwanDay).padStart(2, '0')} ${String(taiwanHour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+        const isCorrect = result === expectedResult;
+
+        document.getElementById('final').innerHTML = `
+UTC 時間: ${utcHour}:${String(minute).padStart(2, '0')}
+加上 8 小時: ${utcHour} + 8 = ${utcHour + 8}
+台灣時間: ${taiwanHour}:${String(minute).padStart(2, '0')}
+
+轉換結果: ${result}
+預期結果: ${expectedResult}
+正確嗎? <span class="${isCorrect ? 'correct' : 'wrong'}">${isCorrect ? '✓✓✓ 是 ✓✓✓' : '✗✗✗ 否 ✗✗✗'}</span>
+        `.trim();
+
+        // 輸入資訊
+        document.getElementById('input').innerHTML = `
+時間戳: ${testTimestamp}
+預期轉換結果: ${expectedResult}
+        `.trim();
+
+        // 當前時間診斷
+        console.log('\n=== 當前系統時間 ===');
+        const now = new Date();
+        console.log('當前時間:', now.toString());
+        console.log('UTC 時間:', now.toISOString());
+        console.log('時區偏移:', now.getTimezoneOffset(), '分鐘');
+    </script>
+</body>
+</html>

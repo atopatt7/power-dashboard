@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>時間轉換測試</title>
+    <style>
+        body { background: #1a1a2e; color: #eee; font-family: monospace; padding: 20px; }
+        .box { background: #0f3460; padding: 15px; margin: 10px 0; border-left: 3px solid #16c784; }
+    </style>
+</head>
+<body>
+    <h1>時間轉換測試</h1>
+
+    <div class="box">
+        <h3>系統當前時間</h3>
+        <p id="systemTime"></p>
+    </div>
+
+    <div class="box">
+        <h3>台灣時間 (UTC+8)</h3>
+        <p id="taiwanTime"></p>
+    </div>
+
+    <div class="box">
+        <h3>後端返回的時間範例</h3>
+        <p id="backendTime"></p>
+    </div>
+
+    <div class="box">
+        <h3>轉換後的台灣時間</h3>
+        <p id="convertedTime"></p>
+    </div>
+
+    <script>
+        function formatTime(timestamp) {
+            const date = new Date(timestamp);
+            const utcMs = date.getTime();
+            const taiwanMs = utcMs + (8 * 3600000);
+            const isoString = new Date(taiwanMs).toISOString();
+            const parts = isoString.split('T');
+            const dateParts = parts[0].split('-');
+            const timeParts = parts[1].split(':');
+            const month = dateParts[1];
+            const day = dateParts[2];
+            const hour = timeParts[0];
+            const minute = timeParts[1];
+            return `${month}-${day} ${hour}:${minute}`;
+        }
+
+        function getTaiwanTimeString() {
+            const now = new Date();
+            const taiwanMs = now.getTime() + (8 * 3600000);
+            const taiwanDate = new Date(taiwanMs);
+            const isoString = taiwanDate.toISOString();
+            const timeParts = isoString.split('T')[1].split(':');
+            const hour = timeParts[0];
+            const minute = timeParts[1];
+            const second = timeParts[2].split('.')[0];
+            return `${hour}:${minute}:${second}`;
+        }
+
+        // 系統時間
+        const now = new Date();
+        document.getElementById('systemTime').innerHTML = `
+            當前時間 (本地): ${now.toString()}<br>
+            UTC 時間: ${now.toISOString()}<br>
+            時區偏移: ${now.getTimezoneOffset()} 分鐘
+        `;
+
+        // 台灣時間
+        document.getElementById('taiwanTime').innerHTML = `
+            台灣時間: ${getTaiwanTimeString()}
+        `;
+
+        // 後端範例時間
+        const backendTime = '2026-03-02T05:51:57.176321';
+        document.getElementById('backendTime').innerHTML = `
+            後端返回的 UTC 時間: ${backendTime}
+        `;
+
+        // 轉換測試
+        const converted = formatTime(backendTime);
+        document.getElementById('convertedTime').innerHTML = `
+            轉換結果: ${converted}<br>
+            預期結果: 03-02 13:51<br>
+            正確嗎? ${converted === '03-02 13:51' ? '✓ 是' : '✗ 否'}
+        `;
+
+        // 每秒更新
+        setInterval(() => {
+            document.getElementById('systemTime').innerHTML = `
+                當前時間 (本地): ${new Date().toString()}<br>
+                UTC 時間: ${new Date().toISOString()}<br>
+                時區偏移: ${new Date().getTimezoneOffset()} 分鐘
+            `;
+            document.getElementById('taiwanTime').innerHTML = `
+                台灣時間: ${getTaiwanTimeString()}
+            `;
+        }, 1000);
+    </script>
+</body>
+</html>
