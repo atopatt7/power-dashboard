@@ -9,21 +9,35 @@
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap');
+
         :root {
-            --bg-primary: #0f172a;
-            --bg-secondary: #1e293b;
-            --bg-card: #1e293b;
-            --border: #334155;
-            --text-primary: #f1f5f9;
-            --text-secondary: #94a3b8;
-            --accent-blue: #3b82f6;
+            --bg-primary: #060612;
+            --bg-secondary: #0a0a1e;
+            --bg-card: rgba(2, 10, 28, 0.92);
+            --border: rgba(0, 200, 180, 0.18);
+            --border-hover: rgba(0, 245, 212, 0.6);
+            --text-primary: #b8d8f0;
+            --text-secondary: #3a6080;
+            --accent: #00f5d4;
+            --accent2: #00aaff;
+            --accent-green: #00ff88;
+            --accent-red: #ff3355;
+            --glow-sm: 0 0 6px rgba(0, 245, 212, 0.4);
+            --glow-md: 0 0 14px rgba(0, 245, 212, 0.5), 0 0 28px rgba(0, 245, 212, 0.2);
+            --glow-lg: 0 0 20px rgba(0, 245, 212, 0.6), 0 0 50px rgba(0, 245, 212, 0.25), 0 0 90px rgba(0, 245, 212, 0.08);
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
         html, body, #root { height: 100%; width: 100%; }
+
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft JhengHei', sans-serif;
-            background: var(--bg-primary);
+            background-color: var(--bg-primary);
+            background-image:
+                linear-gradient(rgba(0, 200, 180, 0.035) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 200, 180, 0.035) 1px, transparent 1px);
+            background-size: 50px 50px;
             color: var(--text-primary);
         }
 
@@ -33,33 +47,92 @@
             height: 100vh;
         }
 
+        /* ==============================
+           HEADER
+        ============================== */
         .header {
-            background: var(--bg-secondary);
+            background: rgba(4, 4, 16, 0.97);
             border-bottom: 1px solid var(--border);
-            padding: 16px 20px;
+            padding: 13px 24px;
             display: flex;
             align-items: center;
             justify-content: space-between;
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            position: relative;
+            z-index: 100;
+            flex-shrink: 0;
         }
 
-        .header h1 {
-            font-size: 20px;
-            font-weight: 600;
+        .header::after {
+            content: '';
+            position: absolute;
+            bottom: -1px; left: 0; right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent 5%, var(--accent) 30%, var(--accent2) 50%, var(--accent) 70%, transparent 95%);
+            opacity: 0.7;
+        }
+
+        .header-title {
+            font-family: 'Orbitron', monospace, sans-serif;
+            font-size: 16px;
+            font-weight: 700;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            background: linear-gradient(90deg, var(--accent), var(--accent2), var(--accent));
+            background-size: 200% 100%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: titleShimmer 5s ease-in-out infinite;
             cursor: pointer;
+            user-select: none;
         }
 
-        .header h1:hover { opacity: 0.8; }
+        @keyframes titleShimmer {
+            0%, 100% { background-position: 0% center; }
+            50%       { background-position: 100% center; }
+        }
 
-        .header-info {
-            font-size: 13px;
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 11px;
             color: var(--text-secondary);
+            font-family: 'Courier New', monospace;
+            letter-spacing: 1px;
         }
 
+        .status-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--accent-green);
+            box-shadow: 0 0 6px var(--accent-green), 0 0 14px rgba(0, 255, 136, 0.5);
+            animation: statusPulse 2.5s ease-in-out infinite;
+            flex-shrink: 0;
+        }
+
+        @keyframes statusPulse {
+            0%, 100% { opacity: 1; box-shadow: 0 0 6px var(--accent-green), 0 0 14px rgba(0, 255, 136, 0.5); }
+            50%       { opacity: 0.35; box-shadow: 0 0 2px var(--accent-green); }
+        }
+
+        /* ==============================
+           CONTENT AREA
+        ============================== */
         .content {
             flex: 1;
             overflow-y: auto;
-            padding: 20px;
+            padding: 20px 24px;
+            scrollbar-width: thin;
+            scrollbar-color: var(--border) transparent;
         }
+
+        .content::-webkit-scrollbar { width: 3px; }
+        .content::-webkit-scrollbar-track { background: transparent; }
+        .content::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
 
         .loading {
             display: flex;
@@ -67,88 +140,225 @@
             justify-content: center;
             height: 100%;
             color: var(--text-secondary);
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            letter-spacing: 3px;
         }
 
+        /* ==============================
+           FACTORY TOTAL CARD
+        ============================== */
         .factory-total {
-            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
-            border: 2px solid var(--accent-blue);
-            border-radius: 10px;
-            padding: 20px;
-            margin-bottom: 20px;
+            background: var(--bg-card);
+            border: 1px solid rgba(0, 245, 212, 0.28);
+            border-radius: 3px;
+            padding: 24px 28px;
+            margin-bottom: 22px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Animated top scan line */
+        .factory-total::before {
+            content: '';
+            position: absolute;
+            top: 0; left: -100%;
+            width: 60%;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--accent), transparent);
+            animation: scanLine 4s linear infinite;
+        }
+
+        @keyframes scanLine {
+            0%   { left: -60%; }
+            100% { left: 140%; }
+        }
+
+        /* Bottom-right corner bracket */
+        .factory-total::after {
+            content: '';
+            position: absolute;
+            bottom: 0; right: 0;
+            width: 22px; height: 22px;
+            border-right: 2px solid var(--accent);
+            border-bottom: 2px solid var(--accent);
+            opacity: 0.45;
+        }
+
+        /* Top-left corner bracket */
+        .corner-tl {
+            position: absolute;
+            top: 0; left: 0;
+            width: 22px; height: 22px;
+            border-left: 2px solid var(--accent);
+            border-top: 2px solid var(--accent);
+            opacity: 0.45;
+        }
+
+        .section-label {
+            font-size: 10px;
+            letter-spacing: 4px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            margin-bottom: 6px;
         }
 
         .factory-total-value {
-            font-size: 40px;
-            font-weight: 800;
-            color: var(--accent-blue);
-            margin: 10px 0;
+            font-family: 'Orbitron', monospace, sans-serif;
+            font-size: 56px;
+            font-weight: 900;
+            color: var(--accent);
+            text-shadow:
+                0 0 8px rgba(0, 245, 212, 0.9),
+                0 0 24px rgba(0, 245, 212, 0.5),
+                0 0 60px rgba(0, 245, 212, 0.2);
+            line-height: 1;
+            letter-spacing: -2px;
+            margin: 4px 0 2px;
+        }
+
+        .unit-label {
+            font-size: 11px;
+            color: var(--text-secondary);
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            margin-bottom: 16px;
         }
 
         .chart-container {
             position: relative;
-            height: 300px;
-            margin-top: 15px;
-            background: var(--bg-primary);
-            border-radius: 8px;
+            height: 280px;
+            margin-top: 10px;
+            background: rgba(0, 0, 0, 0.35);
+            border-radius: 2px;
+            border: 1px solid rgba(0, 200, 180, 0.07);
             padding: 10px;
         }
 
+        /* ==============================
+           GROUP CARDS GRID
+        ============================== */
         .groups-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
             gap: 16px;
-            margin-bottom: 20px;
+            margin-bottom: 24px;
         }
 
         .group-card {
             background: var(--bg-card);
             border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 16px;
+            border-radius: 3px;
+            padding: 18px 20px;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Top glow edge on hover */
+        .group-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--accent), transparent);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        /* Bottom-right corner bracket */
+        .group-card::after {
+            content: '';
+            position: absolute;
+            bottom: 0; right: 0;
+            width: 16px; height: 16px;
+            border-right: 1px solid var(--accent);
+            border-bottom: 1px solid var(--accent);
+            opacity: 0.3;
+            transition: opacity 0.3s;
         }
 
         .group-card:hover {
-            border-color: var(--accent-blue);
-            transform: translateY(-2px);
+            border-color: var(--border-hover);
+            box-shadow: var(--glow-md), inset 0 0 40px rgba(0, 245, 212, 0.025);
+            transform: translateY(-3px);
         }
 
+        .group-card:hover::before { opacity: 1; }
+        .group-card:hover::after  { opacity: 0.7; }
+
         .group-card-title {
-            font-size: 16px;
+            font-size: 14px;
             font-weight: 600;
-            margin-bottom: 10px;
+            color: var(--text-primary);
+            letter-spacing: 1px;
+            margin-bottom: 3px;
+        }
+
+        .device-count {
+            font-size: 10px;
+            color: var(--text-secondary);
+            letter-spacing: 2px;
+            margin-bottom: 12px;
         }
 
         .group-card-value {
-            font-size: 28px;
+            font-family: 'Orbitron', monospace, sans-serif;
+            font-size: 30px;
             font-weight: 700;
-            color: var(--accent-blue);
-            margin-bottom: 10px;
+            color: var(--accent);
+            text-shadow:
+                0 0 8px rgba(0, 245, 212, 0.7),
+                0 0 20px rgba(0, 245, 212, 0.25);
+            line-height: 1;
+        }
+
+        .group-unit {
+            font-size: 10px;
+            color: var(--text-secondary);
+            letter-spacing: 3px;
+            margin-top: 3px;
+            margin-bottom: 12px;
         }
 
         .small-chart-container {
             position: relative;
-            height: 150px;
-            margin-top: 10px;
+            height: 140px;
+            background: rgba(0, 0, 0, 0.25);
+            border-radius: 2px;
         }
 
+        /* ==============================
+           BACK BUTTON
+        ============================== */
         .back-button {
-            display: inline-block;
-            padding: 8px 12px;
-            background: var(--bg-card);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 16px;
+            background: rgba(0, 245, 212, 0.05);
             border: 1px solid var(--border);
-            border-radius: 6px;
-            color: var(--text-primary);
+            border-radius: 3px;
+            color: var(--accent);
             cursor: pointer;
             margin-bottom: 20px;
+            font-size: 12px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            transition: all 0.2s;
+            font-family: 'Courier New', monospace;
         }
 
         .back-button:hover {
-            background: var(--accent-blue);
-            border-color: var(--accent-blue);
+            background: rgba(0, 245, 212, 0.1);
+            border-color: var(--accent);
+            box-shadow: var(--glow-sm);
         }
 
+        /* ==============================
+           DEVICE LIST & CARDS
+        ============================== */
         .devices-list {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -158,15 +368,31 @@
         .device-card {
             background: var(--bg-card);
             border: 1px solid var(--border);
-            border-radius: 8px;
+            border-radius: 3px;
             padding: 16px;
+            position: relative;
+            overflow: hidden;
+            transition: border-color 0.3s;
+        }
+
+        .device-card::after {
+            content: '';
+            position: absolute;
+            bottom: 0; right: 0;
+            width: 14px; height: 14px;
+            border-right: 1px solid var(--accent);
+            border-bottom: 1px solid var(--accent);
+            opacity: 0.22;
         }
 
         .device-name {
             font-weight: 600;
-            margin-bottom: 12px;
+            font-size: 14px;
+            color: var(--text-primary);
+            letter-spacing: 0.5px;
+            margin-bottom: 14px;
             padding-bottom: 10px;
-            border-bottom: 1px solid var(--border);
+            border-bottom: 1px solid rgba(0, 200, 180, 0.1);
         }
 
         .device-metrics {
@@ -177,57 +403,73 @@
         }
 
         .metric {
-            background: var(--bg-primary);
-            padding: 10px;
-            border-radius: 6px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(0, 200, 180, 0.1);
+            padding: 10px 8px;
+            border-radius: 2px;
             text-align: center;
         }
 
         .metric-label {
-            font-size: 11px;
+            font-size: 9px;
+            letter-spacing: 2px;
             color: var(--text-secondary);
-            margin-bottom: 4px;
+            text-transform: uppercase;
+            margin-bottom: 6px;
         }
 
         .metric-value {
-            font-size: 16px;
+            font-family: 'Orbitron', monospace, sans-serif;
+            font-size: 18px;
             font-weight: 700;
-            color: var(--accent-blue);
+            color: var(--accent);
+            text-shadow: 0 0 6px rgba(0, 245, 212, 0.55);
+            line-height: 1;
         }
 
         .metric-unit {
-            font-size: 10px;
+            font-size: 9px;
             color: var(--text-secondary);
+            letter-spacing: 2px;
+            margin-top: 3px;
+            text-transform: uppercase;
         }
 
         .device-chart {
             position: relative;
-            height: 200px;
+            height: 190px;
             margin-top: 12px;
         }
 
+        /* ==============================
+           RESPONSIVE
+        ============================== */
         @media (max-width: 768px) {
-            .groups-grid { grid-template-columns: 1fr; }
-            .devices-list { grid-template-columns: 1fr; }
-            .device-metrics { grid-template-columns: 1fr; }
+            .groups-grid      { grid-template-columns: 1fr; }
+            .devices-list     { grid-template-columns: 1fr; }
+            .factory-total-value { font-size: 40px; }
+            .content          { padding: 14px 16px; }
         }
     </style>
 </head>
 <body>
     <div id="root">
         <div class="app-container">
-            <div class="header">
-                <h1>⚡ 電力監控儀表板</h1>
-                <div class="header-info">載入中...</div>
-            </div>
+            <header class="header">
+                <div class="header-title">⚡ 電力監控儀表板</div>
+                <div class="header-right">
+                    <div class="status-dot"></div>
+                    <span>載入中...</span>
+                </div>
+            </header>
             <div class="content">
-                <div class="loading">正在初始化系統...</div>
+                <div class="loading">INITIALIZING SYSTEM...</div>
             </div>
         </div>
     </div>
 
     <script type="text/babel">
-        const { useState, useEffect, useRef } = React;
+        const { useState, useEffect, useRef, useMemo } = React;
 
         const API_BASE = window.location.origin;
         const GROUP_ICONS = {
@@ -236,33 +478,89 @@
             "砂回收設備": "♻️", "辦公室用電": "🏢", "FMS設備": "🎯",
         };
 
-        // 圖表幫助函數
+        // ==============================
+        // AnimatedNumber - smooth value transition animation
+        // ==============================
+        function AnimatedNumber({ value, decimals = 1 }) {
+            const [displayed, setDisplayed] = useState(value);
+            const animRef = useRef(null);
+            const displayedRef = useRef(value);
+
+            useEffect(() => {
+                if (animRef.current) cancelAnimationFrame(animRef.current);
+
+                const start = displayedRef.current;
+                const end = value;
+                if (Math.abs(start - end) < 0.001) return;
+
+                const duration = 650;
+                const startTime = performance.now();
+
+                const animate = (now) => {
+                    const elapsed = now - startTime;
+                    const progress = Math.min(elapsed / duration, 1);
+                    // Ease-out cubic
+                    const eased = 1 - Math.pow(1 - progress, 3);
+                    const current = start + (end - start) * eased;
+                    displayedRef.current = current;
+                    setDisplayed(current);
+
+                    if (progress < 1) {
+                        animRef.current = requestAnimationFrame(animate);
+                    } else {
+                        displayedRef.current = end;
+                        setDisplayed(end);
+                    }
+                };
+
+                animRef.current = requestAnimationFrame(animate);
+                return () => { if (animRef.current) cancelAnimationFrame(animRef.current); };
+            }, [value]);
+
+            return <>{displayed.toFixed(decimals)}</>;
+        }
+
+        // ==============================
+        // Chart.js glow plugin
+        // ==============================
+        const glowPlugin = {
+            id: 'neonGlow',
+            beforeDatasetsDraw(chart) {
+                chart.ctx.save();
+                chart.ctx.shadowBlur = 14;
+                chart.ctx.shadowColor = 'rgba(0, 245, 212, 0.85)';
+            },
+            afterDatasetsDraw(chart) {
+                chart.ctx.restore();
+            }
+        };
+
+        // ==============================
+        // LineChart component
+        // ==============================
         function LineChart({ data, height = 300 }) {
             const canvasRef = useRef(null);
             const chartRef = useRef(null);
 
             useEffect(() => {
                 if (!canvasRef.current || !data || data.length === 0) return;
-
                 const ctx = canvasRef.current.getContext('2d');
 
-                // 銷毀舊圖表
-                if (chartRef.current) {
-                    chartRef.current.destroy();
-                }
+                if (chartRef.current) chartRef.current.destroy();
 
                 chartRef.current = new Chart(ctx, {
                     type: 'line',
+                    plugins: [glowPlugin],
                     data: {
                         labels: data.map(d => d.label || ''),
                         datasets: [{
                             label: '功率 (kW)',
                             data: data.map(d => d.value),
-                            borderColor: '#3b82f6',
-                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                            borderColor: '#00f5d4',
+                            backgroundColor: 'rgba(0, 245, 212, 0.06)',
                             borderWidth: 2,
                             pointRadius: 0,
-                            tension: 0.3,
+                            tension: 0.35,
                             fill: true,
                         }]
                     },
@@ -272,42 +570,40 @@
                         plugins: {
                             legend: { display: false },
                             tooltip: {
-                                backgroundColor: '#1e293b',
-                                borderColor: '#334155',
+                                backgroundColor: 'rgba(2, 10, 28, 0.97)',
+                                borderColor: 'rgba(0, 245, 212, 0.4)',
                                 borderWidth: 1,
-                                titleColor: '#f1f5f9',
-                                bodyColor: '#94a3b8',
+                                titleColor: '#00f5d4',
+                                bodyColor: '#3a6080',
+                                padding: 10,
+                                displayColors: false,
                             }
                         },
                         scales: {
                             x: {
                                 display: true,
-                                grid: { color: 'rgba(52, 65, 85, 0.2)' },
-                                ticks: { color: '#94a3b8', font: { size: 11 }, maxRotation: 45 }
+                                grid: { color: 'rgba(0, 200, 180, 0.06)' },
+                                ticks: { color: '#3a6080', font: { size: 10 }, maxRotation: 45 }
                             },
                             y: {
                                 display: true,
-                                grid: { color: 'rgba(52, 65, 85, 0.2)' },
-                                ticks: { color: '#94a3b8' }
+                                grid: { color: 'rgba(0, 200, 180, 0.06)' },
+                                ticks: { color: '#3a6080', font: { size: 10 } }
                             }
                         }
                     }
                 });
 
-                return () => {
-                    if (chartRef.current) {
-                        chartRef.current.destroy();
-                    }
-                };
+                return () => { if (chartRef.current) chartRef.current.destroy(); };
             }, [data]);
 
             return <canvas ref={canvasRef} style={{ height: `${height}px` }} />;
         }
 
-        // 時間格式化函數 - 使用台灣時區 (UTC+8)
+        // ==============================
+        // Time helpers
+        // ==============================
         function formatTime(timestamp) {
-            // 後端返回的是 UTC 時間，轉換為台灣時間 (UTC+8)
-            // 手動解析字符串以確保 UTC 解析
             const parts = timestamp.split('T');
             const dateParts = parts[0].split('-');
             const timeParts = parts[1].split(':');
@@ -319,11 +615,9 @@
             const minute = parseInt(timeParts[1]);
             const second = parseFloat(timeParts[2]);
 
-            // 使用 Date.UTC 創建 UTC 時間
             const utcDate = new Date(Date.UTC(year, month - 1, day, hour, minute, Math.floor(second)));
             const utcHour = utcDate.getUTCHours();
 
-            // 加上 8 小時，處理跨天的情況
             let taiwanHour = utcHour + 8;
             let taiwanDay = day;
             let taiwanMonth = month;
@@ -331,69 +625,41 @@
             if (taiwanHour >= 24) {
                 taiwanHour -= 24;
                 taiwanDay += 1;
-                if (taiwanDay > 31) {
-                    taiwanDay = 1;
-                    taiwanMonth += 1;
-                }
+                if (taiwanDay > 31) { taiwanDay = 1; taiwanMonth += 1; }
             }
 
-            const monthStr = String(taiwanMonth).padStart(2, '0');
-            const dayStr = String(taiwanDay).padStart(2, '0');
-            const hourStr = String(taiwanHour).padStart(2, '0');
-            const minuteStr = String(minute).padStart(2, '0');
-
-            return `${monthStr}-${dayStr} ${hourStr}:${minuteStr}`;
+            return `${String(taiwanMonth).padStart(2,'0')}-${String(taiwanDay).padStart(2,'0')} ${String(taiwanHour).padStart(2,'0')}:${String(minute).padStart(2,'0')}`;
         }
 
-        // 取得台灣時間的完整時間字符串（用於頭部顯示）
         function getTaiwanTimeString() {
             const now = new Date();
-
-            // 從 UTC 提取時間並加上 8 小時
-            let utcHour = now.getUTCHours();
-            let utcMinute = now.getUTCMinutes();
-            let utcSecond = now.getUTCSeconds();
-
-            // 加上 8 小時
-            let taiwanHour = utcHour + 8;
-            if (taiwanHour >= 24) {
-                taiwanHour -= 24;
-            }
-
-            const hour = String(taiwanHour).padStart(2, '0');
-            const minute = String(utcMinute).padStart(2, '0');
-            const second = String(utcSecond).padStart(2, '0');
-
-            return `${hour}:${minute}:${second}`;
+            let taiwanHour = now.getUTCHours() + 8;
+            if (taiwanHour >= 24) taiwanHour -= 24;
+            return `${String(taiwanHour).padStart(2,'0')}:${String(now.getUTCMinutes()).padStart(2,'0')}:${String(now.getUTCSeconds()).padStart(2,'0')}`;
         }
 
-        // 數據採樣函數 - 每10分鐘取一個數據點
         function sampleDataEvery10Minutes(data) {
             if (!data || data.length === 0) return [];
-
             const sampled = [];
             let lastTimestamp = null;
-            const tenMinutesMs = 10 * 60 * 1000; // 10分鐘的毫秒數
-
+            const tenMinutesMs = 10 * 60 * 1000;
             for (const point of data) {
                 const timestamp = new Date(point.timestamp || point.label).getTime();
-
                 if (lastTimestamp === null || timestamp - lastTimestamp >= tenMinutesMs) {
                     sampled.push(point);
                     lastTimestamp = timestamp;
                 }
             }
-
             return sampled;
         }
 
-        // 首頁組件
+        // ==============================
+        // HomePage
+        // ==============================
         function HomePage() {
             const [devices, setDevices] = useState({});
             const [latest, setLatest] = useState([]);
             const [historyData, setHistoryData] = useState({});
-            const [isOnline, setIsOnline] = useState(false);
-            const [lastUpdate, setLastUpdate] = useState(null);
 
             useEffect(() => {
                 fetch(`${API_BASE}/api/devices`)
@@ -408,11 +674,7 @@
                         const r = await fetch(`${API_BASE}/api/latest`);
                         const d = await r.json();
                         setLatest(d.data || []);
-                        setIsOnline(true);
-                        setLastUpdate(new Date());
-                    } catch (e) {
-                        setIsOnline(false);
-                    }
+                    } catch (e) {}
                 };
                 fetchLatest();
                 const interval = setInterval(fetchLatest, 10000);
@@ -422,69 +684,41 @@
             useEffect(() => {
                 const loadHistory = async () => {
                     try {
-                        // 加載全廠總用電
                         const r = await fetch(`${API_BASE}/api/power-history?device=%E5%85%A8%E5%BB%A0%E7%B8%BD%E7%94%A8%E9%9B%BB&days=7&limit=1000`);
                         const d = await r.json();
-                        const rawFactoryData = (d.data || [])
-                            .reverse()
-                            .map(r => ({
-                                timestamp: r.timestamp,
-                                label: formatTime(r.timestamp),
-                                value: r.value
-                            }));
+                        const rawFactoryData = (d.data || []).reverse().map(r => ({
+                            timestamp: r.timestamp,
+                            label: formatTime(r.timestamp),
+                            value: r.value
+                        }));
                         const factoryData = sampleDataEvery10Minutes(rawFactoryData);
-
                         const history = { factory: factoryData };
 
-                        // 加載每個分組的數據
                         if (devices.groups) {
                             for (const [groupName, groupDevs] of Object.entries(devices.groups)) {
-                                // 並行加載所有設備的數據
                                 const promises = groupDevs.map(dev =>
                                     fetch(`${API_BASE}/api/power-history?device=${encodeURIComponent(dev)}&days=7&limit=1000`)
-                                        .then(r => r.json())
-                                        .then(d => d.data || [])
-                                        .catch(() => [])
+                                        .then(r => r.json()).then(d => d.data || []).catch(() => [])
                                 );
-
                                 const allData = await Promise.all(promises);
-
-                                // 合併所有時間戳的數據
                                 const timeMap = {};
                                 allData.forEach(deviceData => {
                                     deviceData.forEach(r => {
-                                        const timestamp = r.timestamp;
-                                        if (!timeMap[timestamp]) {
-                                            timeMap[timestamp] = 0;
-                                        }
-                                        timeMap[timestamp] += r.value;
+                                        if (!timeMap[r.timestamp]) timeMap[r.timestamp] = 0;
+                                        timeMap[r.timestamp] += r.value;
                                     });
                                 });
-
-                                // 轉換為圖表數據
                                 const rawGroupData = Object.entries(timeMap)
-                                    .map(([ts, val]) => ({
-                                        timestamp: ts,
-                                        label: formatTime(ts),
-                                        value: val
-                                    }))
+                                    .map(([ts, val]) => ({ timestamp: ts, label: formatTime(ts), value: val }))
                                     .sort((a, b) => a.timestamp.localeCompare(b.timestamp));
-
-                                // 應用10分鐘採樣
-                                const groupData = sampleDataEvery10Minutes(rawGroupData);
-                                history[groupName] = groupData;
+                                history[groupName] = sampleDataEvery10Minutes(rawGroupData);
                             }
                         }
-
                         setHistoryData(history);
-                    } catch (e) {
-                        console.error(e);
-                    }
+                    } catch (e) { console.error(e); }
                 };
 
-                if (devices.groups && Object.keys(devices.groups).length > 0) {
-                    loadHistory();
-                }
+                if (devices.groups && Object.keys(devices.groups).length > 0) loadHistory();
             }, [devices.groups]);
 
             const latestMap = {};
@@ -492,11 +726,10 @@
 
             const groupTotals = {};
             Object.entries(devices.groups || {}).forEach(([group, devs]) => {
-                // 特殊處理：高壓盤組別只計算一號+二號的總功率
                 if (group === "高壓盤") {
-                    const panel1 = latestMap["一號高壓盤總功率"]?.value || 0;
-                    const panel2 = latestMap["二號高壓盤總功率"]?.value || 0;
-                    groupTotals[group] = panel1 + panel2;
+                    const p1 = latestMap["一號高壓盤總功率"]?.value || 0;
+                    const p2 = latestMap["二號高壓盤總功率"]?.value || 0;
+                    groupTotals[group] = p1 + p2;
                 } else {
                     groupTotals[group] = devs.reduce((sum, d) => sum + (latestMap[d]?.value || 0), 0);
                 }
@@ -506,19 +739,24 @@
 
             return (
                 <div>
+                    {/* Factory total */}
                     <div className="factory-total">
-                        <div style={{ fontSize: '14px', color: '#94a3b8', marginBottom: '8px' }}>全廠總用電</div>
-                        <div className="factory-total-value">{factoryTotal.toFixed(1)}</div>
-                        <div style={{ color: '#94a3b8' }}>kW</div>
+                        <div className="corner-tl"></div>
+                        <div className="section-label">全廠總用電</div>
+                        <div className="factory-total-value">
+                            <AnimatedNumber value={factoryTotal} />
+                        </div>
+                        <div className="unit-label">kW</div>
                         <div className="chart-container">
                             {historyData.factory ? (
                                 <LineChart data={historyData.factory} />
                             ) : (
-                                <div className="loading" style={{ height: '100%' }}>載入圖表...</div>
+                                <div className="loading">載入圖表資料...</div>
                             )}
                         </div>
                     </div>
 
+                    {/* Group cards */}
                     <div className="groups-grid">
                         {Object.entries(devices.groups || {}).map(([group, devs]) => (
                             <div
@@ -527,15 +765,17 @@
                                 onClick={() => window.location.hash = `/group/${encodeURIComponent(group)}`}
                             >
                                 <div className="group-card-title">{GROUP_ICONS[group]} {group}</div>
-                                <div style={{ fontSize: '12px', color: '#94a3b8', marginBottom: '8px' }}>{devs.length} 項設備</div>
-                                <div className="group-card-value">{(groupTotals[group] || 0).toFixed(1)}</div>
-                                <div style={{ color: '#94a3b8', marginBottom: '10px' }}>kW</div>
+                                <div className="device-count">{devs.length} 項設備</div>
+                                <div className="group-card-value">
+                                    <AnimatedNumber value={groupTotals[group] || 0} />
+                                </div>
+                                <div className="group-unit">kW</div>
                                 <div className="small-chart-container">
                                     {historyData[group] && historyData[group].length > 0 ? (
-                                        <LineChart data={historyData[group]} height={150} />
+                                        <LineChart data={historyData[group]} height={140} />
                                     ) : (
-                                        <div style={{ color: '#94a3b8', textAlign: 'center', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px' }}>
-                                            載入中...
+                                        <div style={{ color: '#3a6080', textAlign: 'center', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', letterSpacing: '2px' }}>
+                                            LOADING...
                                         </div>
                                     )}
                                 </div>
@@ -546,9 +786,10 @@
             );
         }
 
-        // 群組詳細頁
+        // ==============================
+        // GroupDetailPage
+        // ==============================
         function GroupDetailPage({ groupName }) {
-            const { useMemo } = React;
             const decodedGroup = decodeURIComponent(groupName);
             const [devices, setDevices] = useState({});
             const [latest, setLatest] = useState([]);
@@ -556,9 +797,7 @@
 
             useEffect(() => {
                 fetch(`${API_BASE}/api/devices`)
-                    .then(r => r.json())
-                    .then(d => setDevices(d))
-                    .catch(e => console.error(e));
+                    .then(r => r.json()).then(d => setDevices(d)).catch(e => console.error(e));
             }, []);
 
             useEffect(() => {
@@ -567,9 +806,7 @@
                         const r = await fetch(`${API_BASE}/api/latest`);
                         const d = await r.json();
                         setLatest(d.data || []);
-                    } catch (e) {
-                        console.error(e);
-                    }
+                    } catch (e) { console.error(e); }
                 };
                 fetchLatest();
                 const interval = setInterval(fetchLatest, 10000);
@@ -580,28 +817,19 @@
                 const loadHistory = async () => {
                     const groupDevs = devices.groups?.[decodedGroup] || [];
                     const history = {};
-
                     for (const dev of groupDevs) {
                         try {
                             const r = await fetch(`${API_BASE}/api/power-history?device=${encodeURIComponent(dev)}&days=7&limit=1000`);
                             const d = await r.json();
-                            const rawData = (d.data || [])
-                                .reverse()
-                                .map(r => ({
-                                    timestamp: r.timestamp,
-                                    label: formatTime(r.timestamp),
-                                    value: r.value
-                                }));
+                            const rawData = (d.data || []).reverse().map(r => ({
+                                timestamp: r.timestamp, label: formatTime(r.timestamp), value: r.value
+                            }));
                             history[dev] = sampleDataEvery10Minutes(rawData);
-                        } catch (e) {
-                            console.error(e);
-                        }
+                        } catch (e) { console.error(e); }
                     }
                     setDeviceHistory(history);
                 };
-                if (devices.groups?.[decodedGroup]) {
-                    loadHistory();
-                }
+                if (devices.groups?.[decodedGroup]) loadHistory();
             }, [devices.groups, decodedGroup]);
 
             const latestMap = {};
@@ -616,15 +844,12 @@
                 return history.reduce((sum, d) => sum + (d.value * timeIntervalHours), 0);
             };
 
-            // 使用 useMemo 緩存 groupData，防止圖表頻繁重新渲染
             const groupData = useMemo(() => {
                 if (Object.keys(deviceHistory).length === 0) return [];
                 const timeMap = {};
                 Object.values(deviceHistory).forEach(data => {
                     data.forEach(d => {
-                        if (!timeMap[d.label]) {
-                            timeMap[d.label] = 0;
-                        }
+                        if (!timeMap[d.label]) timeMap[d.label] = 0;
                         timeMap[d.label] += d.value;
                     });
                 });
@@ -635,17 +860,22 @@
 
             return (
                 <div>
-                    <button className="back-button" onClick={() => window.location.hash = '/'}>← 返回首頁</button>
+                    <button className="back-button" onClick={() => window.location.hash = '/'}>
+                        ← 返回首頁
+                    </button>
 
                     <div className="factory-total">
-                        <div style={{ fontSize: '14px', color: '#94a3b8', marginBottom: '8px' }}>{GROUP_ICONS[decodedGroup]} {decodedGroup} - 分組總用電</div>
-                        <div className="factory-total-value">{groupTotal.toFixed(1)}</div>
-                        <div style={{ color: '#94a3b8' }}>kW</div>
+                        <div className="corner-tl"></div>
+                        <div className="section-label">{GROUP_ICONS[decodedGroup]} {decodedGroup} — 分組總用電</div>
+                        <div className="factory-total-value">
+                            <AnimatedNumber value={groupTotal} />
+                        </div>
+                        <div className="unit-label">kW</div>
                         <div className="chart-container">
                             {groupData.length > 0 ? (
                                 <LineChart data={groupData} />
                             ) : (
-                                <div className="loading" style={{ height: '100%' }}>載入圖表...</div>
+                                <div className="loading">載入圖表資料...</div>
                             )}
                         </div>
                     </div>
@@ -662,20 +892,24 @@
                                     <div className="device-metrics">
                                         <div className="metric">
                                             <div className="metric-label">即時用電</div>
-                                            <div className="metric-value">{reading ? reading.value.toFixed(1) : '—'}</div>
+                                            <div className="metric-value">
+                                                {reading ? <AnimatedNumber value={reading.value} /> : '—'}
+                                            </div>
                                             <div className="metric-unit">kW</div>
                                         </div>
                                         <div className="metric">
                                             <div className="metric-label">7日累計</div>
-                                            <div className="metric-value">{cumulative.toFixed(1)}</div>
+                                            <div className="metric-value">
+                                                <AnimatedNumber value={cumulative} />
+                                            </div>
                                             <div className="metric-unit">kWh</div>
                                         </div>
                                     </div>
                                     <div className="device-chart">
                                         {history.length > 0 ? (
-                                            <LineChart data={history} height={200} />
+                                            <LineChart data={history} height={190} />
                                         ) : (
-                                            <div className="loading" style={{ height: '100%' }}>載入圖表...</div>
+                                            <div className="loading" style={{ height: '100%' }}>LOADING...</div>
                                         )}
                                     </div>
                                 </div>
@@ -686,13 +920,13 @@
             );
         }
 
-        // 主應用
+        // ==============================
+        // App (root)
+        // ==============================
         function App() {
             const [page, setPage] = useState('/');
             const [groupName, setGroupName] = useState(null);
-            const [onlineStatus, setOnlineStatus] = useState('✓ 即時連線');
-            const [lastUpdate, setLastUpdate] = useState(new Date());
-            const [, forceUpdate] = useState(0); // 強制重新渲染時間
+            const [, forceUpdate] = useState(0);
 
             useEffect(() => {
                 const handleHash = () => {
@@ -703,36 +937,31 @@
                     } else {
                         setPage('/');
                     }
-                    setLastUpdate(new Date());
                 };
-
                 handleHash();
                 window.addEventListener('hashchange', handleHash);
                 return () => window.removeEventListener('hashchange', handleHash);
             }, []);
 
-            // 每秒更新一次時間顯示
+            // Clock update every second
             useEffect(() => {
-                const interval = setInterval(() => {
-                    forceUpdate(prev => prev + 1);
-                }, 1000);
+                const interval = setInterval(() => forceUpdate(p => p + 1), 1000);
                 return () => clearInterval(interval);
             }, []);
 
             return (
                 <div className="app-container">
-                    <div className="header">
-                        <h1 onClick={() => window.location.hash = '/'}>⚡ 電力監控儀表板</h1>
-                        <div className="header-info">
-                            {onlineStatus} | 更新於 {getTaiwanTimeString()}
+                    <header className="header">
+                        <div className="header-title" onClick={() => window.location.hash = '/'}>
+                            ⚡ 電力監控儀表板
                         </div>
-                    </div>
+                        <div className="header-right">
+                            <div className="status-dot"></div>
+                            <span>ONLINE · {getTaiwanTimeString()}</span>
+                        </div>
+                    </header>
                     <div className="content">
-                        {page === '/' ? (
-                            <HomePage />
-                        ) : (
-                            <GroupDetailPage groupName={groupName} />
-                        )}
+                        {page === '/' ? <HomePage /> : <GroupDetailPage groupName={groupName} />}
                     </div>
                 </div>
             );
