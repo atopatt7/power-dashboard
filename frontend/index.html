@@ -139,7 +139,7 @@
             letter-spacing: 4px; text-transform: uppercase; margin-bottom: 16px;
         }
         .chart-container {
-            position: relative; height: 280px; margin-top: 10px;
+            position: relative; margin-top: 10px;
             background: rgba(0, 0, 0, 0.35); border-radius: 2px;
             border: 1px solid rgba(0, 200, 180, 0.07); padding: 10px;
         }
@@ -182,7 +182,7 @@
             line-height: 1;
         }
         .group-unit { font-size: 10px; color: var(--text-secondary); letter-spacing: 3px; margin-top: 3px; margin-bottom: 12px; }
-        .small-chart-container { position: relative; height: 140px; background: rgba(0, 0, 0, 0.25); border-radius: 2px; }
+        .small-chart-container { position: relative; background: rgba(0, 0, 0, 0.25); border-radius: 2px; }
 
         /* ── BACK BUTTON ── */
         .back-button {
@@ -250,7 +250,6 @@
 
         // ── Time helpers ──────────────────────────────────────────────
 
-        // Returns "HH:MM" in Taiwan time (UTC+8)
         function formatTimeHHMM(timestamp) {
             const [datePart, timePart] = timestamp.split('T');
             const [y, mo, d] = datePart.split('-').map(Number);
@@ -260,13 +259,11 @@
             return `${String(twDate.getUTCHours()).padStart(2,'0')}:${String(twDate.getUTCMinutes()).padStart(2,'0')}`;
         }
 
-        // Returns "YYYY-MM-DD" for today in Taiwan time
         function getTodayTaiwanDate() {
             const d = new Date(Date.now() + 8 * 3600 * 1000);
             return `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,'0')}-${String(d.getUTCDate()).padStart(2,'0')}`;
         }
 
-        // Returns "YYYY-MM-DD" for a given API timestamp, in Taiwan time
         function getTimestampTaiwanDate(timestamp) {
             const [datePart, timePart] = timestamp.split('T');
             const [y, mo, d] = datePart.split('-').map(Number);
@@ -276,7 +273,6 @@
             return `${twDate.getUTCFullYear()}-${String(twDate.getUTCMonth()+1).padStart(2,'0')}-${String(twDate.getUTCDate()).padStart(2,'0')}`;
         }
 
-        // Returns "HH:MM:SS" for current Taiwan time (for header clock)
         function getTaiwanTimeString() {
             const now = new Date();
             let h = now.getUTCHours() + 8;
@@ -284,18 +280,29 @@
             return `${String(h).padStart(2,'0')}:${String(now.getUTCMinutes()).padStart(2,'0')}:${String(now.getUTCSeconds()).padStart(2,'0')}`;
         }
 
-        // Trapezoidal cumulative kWh from a history array with real timestamps
+        // "HH:MM" → minutes since midnight (x-axis value)
+        function timeToMinutes(hhmm) {
+            const [h, m] = hhmm.split(':').map(Number);
+            return h * 60 + m;
+        }
+
+        // minutes → "HH:MM" (x-axis tick label)
+        function minutesToHHMM(val) {
+            const h = Math.floor(val / 60);
+            const m = val % 60;
+            return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+        }
+
         function calcCumulative(history) {
             if (!history || history.length < 2) return 0;
             let total = 0;
             for (let i = 1; i < history.length; i++) {
-                const dt = (new Date(history[i].timestamp) - new Date(history[i-1].timestamp)) / 3600000; // hours
+                const dt = (new Date(history[i].timestamp) - new Date(history[i-1].timestamp)) / 3600000;
                 total += ((history[i].value + history[i-1].value) / 2) * dt;
             }
             return total;
         }
 
-        // Compute group totals from a latestMap + devices.groups config
         function computeGroupTotals(latestMap, groups) {
             const totals = {};
             Object.entries(groups || {}).forEach(([group, devs]) => {
@@ -308,8 +315,9 @@
             return totals;
         }
 
-        // ── Chart.js neon glow plugin ─────────────────────────────────
+        // ── Chart.js plugins ──────────────────────────────────────────
 
+        // Neon glow on dataset lines
         const glowPlugin = {
             id: 'neonGlow',
             beforeDatasetsDraw(chart) {
@@ -320,25 +328,80 @@
             afterDatasetsDraw(chart) { chart.ctx.restore(); }
         };
 
-        // ── LineChart component ───────────────────────────────────────
+        // Crosshair: drawn in afterDraw using chart._crosshair state
+        const crosshairPlugin = {
+            id: 'crosshair',
+            afterDraw(chart) {
+                if (!chart._crosshair) return;
+                const { ctx, chartArea } = chart;
+                const { x, y } = chart._crosshair;
 
-        function LineChart({ data, height = 300 }) {
-            const canvasRef = useRef(null);
-            const chartRef = useRef(null);
+                ctx.save();
+                ctx.strokeStyle = 'rgba(0, 245, 212, 0.55)';
+                ctx.lineWidth = 1;
+                ctx.shadowBlur = 6;
+                ctx.shadowColor = 'rgba(0, 245, 212, 0.7)';
+                ctx.setLineDash([5, 4]);
+
+                // Vertical line
+                ctx.beginPath();
+                ctx.moveTo(x, chartArea.top);
+                ctx.lineTo(x, chartArea.bottom);
+                ctx.stroke();
+
+                // Horizontal line
+                ctx.beginPath();
+                ctx.moveTo(chartArea.left, y);
+                ctx.lineTo(chartArea.right, y);
+                ctx.stroke();
+
+                // Snap dot
+                ctx.setLineDash([]);
+                ctx.shadowBlur = 16;
+                ctx.shadowColor = '#00f5d4';
+                ctx.fillStyle = '#00f5d4';
+                ctx.beginPath();
+                ctx.arc(x, y, 4.5, 0, 2 * Math.PI);
+                ctx.fill();
+                // Dot ring
+                ctx.strokeStyle = 'rgba(0, 245, 212, 0.4)';
+                ctx.lineWidth = 2;
+                ctx.shadowBlur = 0;
+                ctx.beginPath();
+                ctx.arc(x, y, 8, 0, 2 * Math.PI);
+                ctx.stroke();
+
+                ctx.restore();
+            }
+        };
+
+        // ── LineChart component ───────────────────────────────────────
+        // data: [{ timestamp, label:"HH:MM", value }]
+        // X-axis is always 00:00–23:59 (linear, 0–1439 minutes)
+
+        function LineChart({ data, height = 280, maxTicks = 12 }) {
+            const canvasRef  = useRef(null);
+            const chartRef   = useRef(null);
+            const tooltipRef = useRef(null);
 
             useEffect(() => {
-                if (!canvasRef.current || !data || data.length === 0) return;
+                if (!canvasRef.current) return;
+
                 const ctx = canvasRef.current.getContext('2d');
                 if (chartRef.current) chartRef.current.destroy();
 
+                // Build {x, y} dataset (x = minutes since midnight)
+                const chartPoints = (data && data.length > 0)
+                    ? data.map(d => ({ x: timeToMinutes(d.label), y: d.value }))
+                    : [];
+
                 chartRef.current = new Chart(ctx, {
                     type: 'line',
-                    plugins: [glowPlugin],
+                    plugins: [glowPlugin, crosshairPlugin],
                     data: {
-                        labels: data.map(d => d.label),
                         datasets: [{
                             label: '功率 (kW)',
-                            data: data.map(d => d.value),
+                            data: chartPoints,
                             borderColor: '#00f5d4',
                             backgroundColor: 'rgba(0, 245, 212, 0.06)',
                             borderWidth: 2,
@@ -353,21 +416,21 @@
                         animation: false,
                         plugins: {
                             legend: { display: false },
-                            tooltip: {
-                                backgroundColor: 'rgba(2, 10, 28, 0.97)',
-                                borderColor: 'rgba(0, 245, 212, 0.4)',
-                                borderWidth: 1,
-                                titleColor: '#00f5d4',
-                                bodyColor: '#3a6080',
-                                padding: 10,
-                                displayColors: false,
-                            }
+                            tooltip: { enabled: false },  // custom HTML tooltip below
                         },
                         scales: {
                             x: {
-                                display: true,
+                                type: 'linear',
+                                min: 0,
+                                max: 1439,           // 23:59
                                 grid: { color: 'rgba(0, 200, 180, 0.06)' },
-                                ticks: { color: '#3a6080', font: { size: 10 }, maxRotation: 45, maxTicksLimit: 12 }
+                                ticks: {
+                                    color: '#3a6080',
+                                    font: { size: 10 },
+                                    stepSize: 120,       // tick every 2 h
+                                    maxTicksLimit: maxTicks,
+                                    callback: (val) => minutesToHHMM(val),
+                                }
                             },
                             y: {
                                 display: true,
@@ -378,10 +441,100 @@
                     }
                 });
 
-                return () => { if (chartRef.current) chartRef.current.destroy(); };
+                // ── Crosshair + tooltip mouse events ──
+                const canvas  = canvasRef.current;
+                const tooltip = tooltipRef.current;
+
+                const onMouseMove = (e) => {
+                    const chart = chartRef.current;
+                    if (!chart || !chart.chartArea) return;
+
+                    const rect = canvas.getBoundingClientRect();
+                    const mouseX = e.clientX - rect.left;
+                    const { chartArea, scales } = chart;
+
+                    // Outside chart area → clear
+                    if (mouseX < chartArea.left || mouseX > chartArea.right) {
+                        chart._crosshair = null;
+                        chart.draw();
+                        if (tooltip) tooltip.style.display = 'none';
+                        return;
+                    }
+
+                    const pts = chart.data.datasets[0].data;
+                    if (!pts || pts.length === 0) return;
+
+                    // Find nearest data point by x (time)
+                    const xVal = scales.x.getValueForPixel(mouseX);
+                    let nearestIdx = 0, minDist = Infinity;
+                    pts.forEach((pt, i) => {
+                        const d = Math.abs(pt.x - xVal);
+                        if (d < minDist) { minDist = d; nearestIdx = i; }
+                    });
+
+                    const meta = chart.getDatasetMeta(0);
+                    const ptMeta = meta.data[nearestIdx];
+                    const ptData = pts[nearestIdx];
+                    if (!ptMeta || !ptData) return;
+
+                    // Update crosshair
+                    chart._crosshair = { x: ptMeta.x, y: ptMeta.y };
+                    chart.draw();
+
+                    // Update HTML tooltip
+                    if (tooltip) {
+                        const timeStr = minutesToHHMM(ptData.x);
+                        tooltip.innerHTML =
+                            `<div style="font-family:Orbitron,monospace;font-size:14px;font-weight:700;color:#00f5d4;` +
+                            `text-shadow:0 0 8px rgba(0,245,212,0.7);line-height:1">${ptData.y.toFixed(1)}` +
+                            `<span style="font-size:9px;opacity:0.7;letter-spacing:1px;margin-left:3px">kW</span></div>` +
+                            `<div style="font-family:'Courier New',monospace;font-size:11px;color:#3a6080;` +
+                            `margin-top:5px;letter-spacing:2px">${timeStr}</div>`;
+
+                        // Position: prefer right of crosshair, flip left if near edge
+                        let tx = ptMeta.x + 14;
+                        let ty = ptMeta.y - 56;
+                        if (tx + 115 > chartArea.right + 20) tx = ptMeta.x - 129;
+                        if (ty < chartArea.top) ty = ptMeta.y + 12;
+                        tooltip.style.left = `${tx}px`;
+                        tooltip.style.top  = `${ty}px`;
+                        tooltip.style.display = 'block';
+                    }
+                };
+
+                const onMouseLeave = () => {
+                    const chart = chartRef.current;
+                    if (chart) { chart._crosshair = null; chart.draw(); }
+                    if (tooltip) tooltip.style.display = 'none';
+                };
+
+                canvas.addEventListener('mousemove', onMouseMove);
+                canvas.addEventListener('mouseleave', onMouseLeave);
+
+                return () => {
+                    canvas.removeEventListener('mousemove', onMouseMove);
+                    canvas.removeEventListener('mouseleave', onMouseLeave);
+                    if (chartRef.current) chartRef.current.destroy();
+                };
             }, [data]);
 
-            return <canvas ref={canvasRef} style={{ height: `${height}px` }} />;
+            return (
+                <div style={{ position: 'relative', height: `${height}px` }}>
+                    <canvas ref={canvasRef} style={{ cursor: 'crosshair', display: 'block' }} />
+                    <div ref={tooltipRef} style={{
+                        display: 'none',
+                        position: 'absolute',
+                        background: 'rgba(2, 10, 28, 0.96)',
+                        border: '1px solid rgba(0, 245, 212, 0.45)',
+                        borderRadius: '3px',
+                        padding: '9px 13px',
+                        pointerEvents: 'none',
+                        zIndex: 20,
+                        minWidth: '100px',
+                        boxShadow: '0 0 14px rgba(0, 245, 212, 0.2)',
+                    }} />
+                </div>
+            );
         }
 
         // ── HomePage ──────────────────────────────────────────────────
@@ -520,7 +673,7 @@
                         <div className="unit-label">kW</div>
                         <div className="chart-container">
                             {chartData.factory ? (
-                                <LineChart data={chartData.factory} />
+                                <LineChart data={chartData.factory} height={258} maxTicks={12} />
                             ) : (
                                 <div className="loading">載入圖表資料...</div>
                             )}
@@ -536,8 +689,8 @@
                                 <div className="group-card-value">{(groupTotals[group] || 0).toFixed(1)}</div>
                                 <div className="group-unit">kW</div>
                                 <div className="small-chart-container">
-                                    {chartData[group] && chartData[group].length > 0 ? (
-                                        <LineChart data={chartData[group]} height={140} />
+                                    {chartData[group] ? (
+                                        <LineChart data={chartData[group]} height={140} maxTicks={6} />
                                     ) : (
                                         <div style={{ color:'#3a6080', textAlign:'center', height:'100%', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'11px', letterSpacing:'2px' }}>
                                             LOADING...
@@ -668,8 +821,8 @@
                         <div className="factory-total-value">{groupTotal.toFixed(1)}</div>
                         <div className="unit-label">kW</div>
                         <div className="chart-container">
-                            {groupData.length > 0 ? (
-                                <LineChart data={groupData} />
+                            {groupData.length >= 0 ? (
+                                <LineChart data={groupData} height={258} maxTicks={12} />
                             ) : (
                                 <div className="loading">載入圖表資料...</div>
                             )}
@@ -698,8 +851,8 @@
                                         </div>
                                     </div>
                                     <div className="device-chart">
-                                        {history.length > 0 ? (
-                                            <LineChart data={history} height={190} />
+                                        {history.length >= 0 ? (
+                                            <LineChart data={history} height={190} maxTicks={8} />
                                         ) : (
                                             <div className="loading" style={{ height:'100%' }}>LOADING...</div>
                                         )}
