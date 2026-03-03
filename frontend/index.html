@@ -25,7 +25,6 @@
             --accent-red: #ff3355;
             --glow-sm: 0 0 6px rgba(0, 245, 212, 0.4);
             --glow-md: 0 0 14px rgba(0, 245, 212, 0.5), 0 0 28px rgba(0, 245, 212, 0.2);
-            --glow-lg: 0 0 20px rgba(0, 245, 212, 0.6), 0 0 50px rgba(0, 245, 212, 0.25), 0 0 90px rgba(0, 245, 212, 0.08);
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -41,409 +40,185 @@
             color: var(--text-primary);
         }
 
-        .app-container {
-            display: flex;
-            flex-direction: column;
-            height: 100vh;
-        }
+        .app-container { display: flex; flex-direction: column; height: 100vh; }
 
-        /* ==============================
-           HEADER
-        ============================== */
+        /* ── HEADER ── */
         .header {
             background: rgba(4, 4, 16, 0.97);
             border-bottom: 1px solid var(--border);
             padding: 13px 24px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
+            display: flex; align-items: center; justify-content: space-between;
             backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            position: relative;
-            z-index: 100;
-            flex-shrink: 0;
+            position: relative; z-index: 100; flex-shrink: 0;
         }
-
         .header::after {
             content: '';
-            position: absolute;
-            bottom: -1px; left: 0; right: 0;
-            height: 1px;
+            position: absolute; bottom: -1px; left: 0; right: 0; height: 1px;
             background: linear-gradient(90deg, transparent 5%, var(--accent) 30%, var(--accent2) 50%, var(--accent) 70%, transparent 95%);
             opacity: 0.7;
         }
-
         .header-title {
             font-family: 'Orbitron', monospace, sans-serif;
-            font-size: 16px;
-            font-weight: 700;
-            letter-spacing: 3px;
-            text-transform: uppercase;
+            font-size: 16px; font-weight: 700; letter-spacing: 3px; text-transform: uppercase;
             background: linear-gradient(90deg, var(--accent), var(--accent2), var(--accent));
             background-size: 200% 100%;
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
             animation: titleShimmer 5s ease-in-out infinite;
-            cursor: pointer;
-            user-select: none;
+            cursor: pointer; user-select: none;
         }
-
         @keyframes titleShimmer {
             0%, 100% { background-position: 0% center; }
             50%       { background-position: 100% center; }
         }
-
         .header-right {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 11px;
-            color: var(--text-secondary);
-            font-family: 'Courier New', monospace;
-            letter-spacing: 1px;
+            display: flex; align-items: center; gap: 8px;
+            font-size: 11px; color: var(--text-secondary);
+            font-family: 'Courier New', monospace; letter-spacing: 1px;
         }
-
         .status-dot {
-            width: 7px;
-            height: 7px;
-            border-radius: 50%;
+            width: 7px; height: 7px; border-radius: 50%;
             background: var(--accent-green);
             box-shadow: 0 0 6px var(--accent-green), 0 0 14px rgba(0, 255, 136, 0.5);
-            animation: statusPulse 2.5s ease-in-out infinite;
-            flex-shrink: 0;
+            animation: statusPulse 2.5s ease-in-out infinite; flex-shrink: 0;
         }
-
         @keyframes statusPulse {
             0%, 100% { opacity: 1; box-shadow: 0 0 6px var(--accent-green), 0 0 14px rgba(0, 255, 136, 0.5); }
             50%       { opacity: 0.35; box-shadow: 0 0 2px var(--accent-green); }
         }
 
-        /* ==============================
-           CONTENT AREA
-        ============================== */
+        /* ── CONTENT ── */
         .content {
-            flex: 1;
-            overflow-y: auto;
-            padding: 20px 24px;
-            scrollbar-width: thin;
-            scrollbar-color: var(--border) transparent;
+            flex: 1; overflow-y: auto; padding: 20px 24px;
+            scrollbar-width: thin; scrollbar-color: var(--border) transparent;
         }
-
         .content::-webkit-scrollbar { width: 3px; }
-        .content::-webkit-scrollbar-track { background: transparent; }
         .content::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
-
         .loading {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            height: 100%;
-            color: var(--text-secondary);
-            font-family: 'Courier New', monospace;
-            font-size: 13px;
-            letter-spacing: 3px;
+            display: flex; align-items: center; justify-content: center; height: 100%;
+            color: var(--text-secondary); font-family: 'Courier New', monospace;
+            font-size: 12px; letter-spacing: 3px;
         }
 
-        /* ==============================
-           FACTORY TOTAL CARD
-        ============================== */
+        /* ── FACTORY TOTAL CARD ── */
         .factory-total {
             background: var(--bg-card);
             border: 1px solid rgba(0, 245, 212, 0.28);
-            border-radius: 3px;
-            padding: 24px 28px;
-            margin-bottom: 22px;
-            position: relative;
-            overflow: hidden;
+            border-radius: 3px; padding: 24px 28px; margin-bottom: 22px;
+            position: relative; overflow: hidden;
         }
-
-        /* Animated top scan line */
         .factory-total::before {
-            content: '';
-            position: absolute;
-            top: 0; left: -100%;
-            width: 60%;
-            height: 1px;
+            content: ''; position: absolute; top: 0; left: -100%;
+            width: 60%; height: 1px;
             background: linear-gradient(90deg, transparent, var(--accent), transparent);
             animation: scanLine 4s linear infinite;
         }
-
-        @keyframes scanLine {
-            0%   { left: -60%; }
-            100% { left: 140%; }
-        }
-
-        /* Bottom-right corner bracket */
+        @keyframes scanLine { 0% { left: -60%; } 100% { left: 140%; } }
         .factory-total::after {
-            content: '';
-            position: absolute;
-            bottom: 0; right: 0;
+            content: ''; position: absolute; bottom: 0; right: 0;
             width: 22px; height: 22px;
-            border-right: 2px solid var(--accent);
-            border-bottom: 2px solid var(--accent);
+            border-right: 2px solid var(--accent); border-bottom: 2px solid var(--accent);
             opacity: 0.45;
         }
-
-        /* Top-left corner bracket */
         .corner-tl {
-            position: absolute;
-            top: 0; left: 0;
-            width: 22px; height: 22px;
-            border-left: 2px solid var(--accent);
-            border-top: 2px solid var(--accent);
+            position: absolute; top: 0; left: 0; width: 22px; height: 22px;
+            border-left: 2px solid var(--accent); border-top: 2px solid var(--accent);
             opacity: 0.45;
         }
-
         .section-label {
-            font-size: 10px;
-            letter-spacing: 4px;
-            color: var(--text-secondary);
-            text-transform: uppercase;
-            margin-bottom: 6px;
+            font-size: 10px; letter-spacing: 4px; color: var(--text-secondary);
+            text-transform: uppercase; margin-bottom: 6px;
         }
-
         .factory-total-value {
             font-family: 'Orbitron', monospace, sans-serif;
-            font-size: 56px;
-            font-weight: 900;
-            color: var(--accent);
-            text-shadow:
-                0 0 8px rgba(0, 245, 212, 0.9),
-                0 0 24px rgba(0, 245, 212, 0.5),
-                0 0 60px rgba(0, 245, 212, 0.2);
-            line-height: 1;
-            letter-spacing: -2px;
-            margin: 4px 0 2px;
+            font-size: 56px; font-weight: 900; color: var(--accent);
+            text-shadow: 0 0 8px rgba(0, 245, 212, 0.9), 0 0 24px rgba(0, 245, 212, 0.5), 0 0 60px rgba(0, 245, 212, 0.2);
+            line-height: 1; letter-spacing: -2px; margin: 4px 0 2px;
         }
-
         .unit-label {
-            font-size: 11px;
-            color: var(--text-secondary);
-            letter-spacing: 4px;
-            text-transform: uppercase;
-            margin-bottom: 16px;
+            font-size: 11px; color: var(--text-secondary);
+            letter-spacing: 4px; text-transform: uppercase; margin-bottom: 16px;
         }
-
         .chart-container {
-            position: relative;
-            height: 280px;
-            margin-top: 10px;
-            background: rgba(0, 0, 0, 0.35);
-            border-radius: 2px;
-            border: 1px solid rgba(0, 200, 180, 0.07);
-            padding: 10px;
+            position: relative; height: 280px; margin-top: 10px;
+            background: rgba(0, 0, 0, 0.35); border-radius: 2px;
+            border: 1px solid rgba(0, 200, 180, 0.07); padding: 10px;
         }
 
-        /* ==============================
-           GROUP CARDS GRID
-        ============================== */
+        /* ── GROUP CARDS ── */
         .groups-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
-            gap: 16px;
-            margin-bottom: 24px;
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+            gap: 16px; margin-bottom: 24px;
         }
-
         .group-card {
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: 3px;
-            padding: 18px 20px;
-            cursor: pointer;
+            background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: 3px; padding: 18px 20px; cursor: pointer;
             transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-            position: relative;
-            overflow: hidden;
+            position: relative; overflow: hidden;
         }
-
-        /* Top glow edge on hover */
         .group-card::before {
-            content: '';
-            position: absolute;
-            top: 0; left: 0; right: 0;
-            height: 1px;
+            content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
             background: linear-gradient(90deg, transparent, var(--accent), transparent);
-            opacity: 0;
-            transition: opacity 0.3s;
+            opacity: 0; transition: opacity 0.3s;
         }
-
-        /* Bottom-right corner bracket */
         .group-card::after {
-            content: '';
-            position: absolute;
-            bottom: 0; right: 0;
+            content: ''; position: absolute; bottom: 0; right: 0;
             width: 16px; height: 16px;
-            border-right: 1px solid var(--accent);
-            border-bottom: 1px solid var(--accent);
-            opacity: 0.3;
-            transition: opacity 0.3s;
+            border-right: 1px solid var(--accent); border-bottom: 1px solid var(--accent);
+            opacity: 0.3; transition: opacity 0.3s;
         }
-
         .group-card:hover {
             border-color: var(--border-hover);
             box-shadow: var(--glow-md), inset 0 0 40px rgba(0, 245, 212, 0.025);
             transform: translateY(-3px);
         }
-
         .group-card:hover::before { opacity: 1; }
         .group-card:hover::after  { opacity: 0.7; }
-
-        .group-card-title {
-            font-size: 14px;
-            font-weight: 600;
-            color: var(--text-primary);
-            letter-spacing: 1px;
-            margin-bottom: 3px;
-        }
-
-        .device-count {
-            font-size: 10px;
-            color: var(--text-secondary);
-            letter-spacing: 2px;
-            margin-bottom: 12px;
-        }
-
+        .group-card-title { font-size: 14px; font-weight: 600; color: var(--text-primary); letter-spacing: 1px; margin-bottom: 3px; }
+        .device-count { font-size: 10px; color: var(--text-secondary); letter-spacing: 2px; margin-bottom: 12px; }
         .group-card-value {
             font-family: 'Orbitron', monospace, sans-serif;
-            font-size: 30px;
-            font-weight: 700;
-            color: var(--accent);
-            text-shadow:
-                0 0 8px rgba(0, 245, 212, 0.7),
-                0 0 20px rgba(0, 245, 212, 0.25);
+            font-size: 30px; font-weight: 700; color: var(--accent);
+            text-shadow: 0 0 8px rgba(0, 245, 212, 0.7), 0 0 20px rgba(0, 245, 212, 0.25);
             line-height: 1;
         }
+        .group-unit { font-size: 10px; color: var(--text-secondary); letter-spacing: 3px; margin-top: 3px; margin-bottom: 12px; }
+        .small-chart-container { position: relative; height: 140px; background: rgba(0, 0, 0, 0.25); border-radius: 2px; }
 
-        .group-unit {
-            font-size: 10px;
-            color: var(--text-secondary);
-            letter-spacing: 3px;
-            margin-top: 3px;
-            margin-bottom: 12px;
-        }
-
-        .small-chart-container {
-            position: relative;
-            height: 140px;
-            background: rgba(0, 0, 0, 0.25);
-            border-radius: 2px;
-        }
-
-        /* ==============================
-           BACK BUTTON
-        ============================== */
+        /* ── BACK BUTTON ── */
         .back-button {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 8px 16px;
-            background: rgba(0, 245, 212, 0.05);
-            border: 1px solid var(--border);
-            border-radius: 3px;
-            color: var(--accent);
-            cursor: pointer;
-            margin-bottom: 20px;
-            font-size: 12px;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-            transition: all 0.2s;
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 8px 16px; background: rgba(0, 245, 212, 0.05);
+            border: 1px solid var(--border); border-radius: 3px; color: var(--accent);
+            cursor: pointer; margin-bottom: 20px; font-size: 12px;
+            letter-spacing: 2px; text-transform: uppercase; transition: all 0.2s;
             font-family: 'Courier New', monospace;
         }
+        .back-button:hover { background: rgba(0, 245, 212, 0.1); border-color: var(--accent); box-shadow: var(--glow-sm); }
 
-        .back-button:hover {
-            background: rgba(0, 245, 212, 0.1);
-            border-color: var(--accent);
-            box-shadow: var(--glow-sm);
-        }
-
-        /* ==============================
-           DEVICE LIST & CARDS
-        ============================== */
-        .devices-list {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 16px;
-        }
-
+        /* ── DEVICE CARDS ── */
+        .devices-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
         .device-card {
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: 3px;
-            padding: 16px;
-            position: relative;
-            overflow: hidden;
-            transition: border-color 0.3s;
+            background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: 3px; padding: 16px; position: relative; overflow: hidden;
         }
-
         .device-card::after {
-            content: '';
-            position: absolute;
-            bottom: 0; right: 0;
+            content: ''; position: absolute; bottom: 0; right: 0;
             width: 14px; height: 14px;
-            border-right: 1px solid var(--accent);
-            border-bottom: 1px solid var(--accent);
+            border-right: 1px solid var(--accent); border-bottom: 1px solid var(--accent);
             opacity: 0.22;
         }
-
-        .device-name {
-            font-weight: 600;
-            font-size: 14px;
-            color: var(--text-primary);
-            letter-spacing: 0.5px;
-            margin-bottom: 14px;
-            padding-bottom: 10px;
-            border-bottom: 1px solid rgba(0, 200, 180, 0.1);
-        }
-
-        .device-metrics {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            margin-bottom: 12px;
-        }
-
-        .metric {
-            background: rgba(0, 0, 0, 0.3);
-            border: 1px solid rgba(0, 200, 180, 0.1);
-            padding: 10px 8px;
-            border-radius: 2px;
-            text-align: center;
-        }
-
-        .metric-label {
-            font-size: 9px;
-            letter-spacing: 2px;
-            color: var(--text-secondary);
-            text-transform: uppercase;
-            margin-bottom: 6px;
-        }
-
+        .device-name { font-weight: 600; font-size: 14px; color: var(--text-primary); letter-spacing: 0.5px; margin-bottom: 14px; padding-bottom: 10px; border-bottom: 1px solid rgba(0, 200, 180, 0.1); }
+        .device-metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+        .metric { background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(0, 200, 180, 0.1); padding: 10px 8px; border-radius: 2px; text-align: center; }
+        .metric-label { font-size: 9px; letter-spacing: 2px; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 6px; }
         .metric-value {
             font-family: 'Orbitron', monospace, sans-serif;
-            font-size: 18px;
-            font-weight: 700;
-            color: var(--accent);
-            text-shadow: 0 0 6px rgba(0, 245, 212, 0.55);
-            line-height: 1;
+            font-size: 18px; font-weight: 700; color: var(--accent);
+            text-shadow: 0 0 6px rgba(0, 245, 212, 0.55); line-height: 1;
         }
+        .metric-unit { font-size: 9px; color: var(--text-secondary); letter-spacing: 2px; margin-top: 3px; text-transform: uppercase; }
+        .device-chart { position: relative; height: 190px; margin-top: 12px; }
 
-        .metric-unit {
-            font-size: 9px;
-            color: var(--text-secondary);
-            letter-spacing: 2px;
-            margin-top: 3px;
-            text-transform: uppercase;
-        }
-
-        .device-chart {
-            position: relative;
-            height: 190px;
-            margin-top: 12px;
-        }
-
-        /* ==============================
-           RESPONSIVE
-        ============================== */
         @media (max-width: 768px) {
             .groups-grid      { grid-template-columns: 1fr; }
             .devices-list     { grid-template-columns: 1fr; }
@@ -457,14 +232,9 @@
         <div class="app-container">
             <header class="header">
                 <div class="header-title">⚡ 電力監控儀表板</div>
-                <div class="header-right">
-                    <div class="status-dot"></div>
-                    <span>載入中...</span>
-                </div>
+                <div class="header-right"><div class="status-dot"></div><span>載入中...</span></div>
             </header>
-            <div class="content">
-                <div class="loading">INITIALIZING SYSTEM...</div>
-            </div>
+            <div class="content"><div class="loading">INITIALIZING SYSTEM...</div></div>
         </div>
     </div>
 
@@ -478,51 +248,68 @@
             "砂回收設備": "♻️", "辦公室用電": "🏢", "FMS設備": "🎯",
         };
 
-        // ==============================
-        // AnimatedNumber - smooth value transition animation
-        // ==============================
-        function AnimatedNumber({ value, decimals = 1 }) {
-            const [displayed, setDisplayed] = useState(value);
-            const animRef = useRef(null);
-            const displayedRef = useRef(value);
+        // ── Time helpers ──────────────────────────────────────────────
 
-            useEffect(() => {
-                if (animRef.current) cancelAnimationFrame(animRef.current);
-
-                const start = displayedRef.current;
-                const end = value;
-                if (Math.abs(start - end) < 0.001) return;
-
-                const duration = 650;
-                const startTime = performance.now();
-
-                const animate = (now) => {
-                    const elapsed = now - startTime;
-                    const progress = Math.min(elapsed / duration, 1);
-                    // Ease-out cubic
-                    const eased = 1 - Math.pow(1 - progress, 3);
-                    const current = start + (end - start) * eased;
-                    displayedRef.current = current;
-                    setDisplayed(current);
-
-                    if (progress < 1) {
-                        animRef.current = requestAnimationFrame(animate);
-                    } else {
-                        displayedRef.current = end;
-                        setDisplayed(end);
-                    }
-                };
-
-                animRef.current = requestAnimationFrame(animate);
-                return () => { if (animRef.current) cancelAnimationFrame(animRef.current); };
-            }, [value]);
-
-            return <>{displayed.toFixed(decimals)}</>;
+        // Returns "HH:MM" in Taiwan time (UTC+8)
+        function formatTimeHHMM(timestamp) {
+            const [datePart, timePart] = timestamp.split('T');
+            const [y, mo, d] = datePart.split('-').map(Number);
+            const [h, mi] = timePart.split(':').map(Number);
+            const utcMs = Date.UTC(y, mo - 1, d, h, mi, 0);
+            const twDate = new Date(utcMs + 8 * 3600 * 1000);
+            return `${String(twDate.getUTCHours()).padStart(2,'0')}:${String(twDate.getUTCMinutes()).padStart(2,'0')}`;
         }
 
-        // ==============================
-        // Chart.js glow plugin
-        // ==============================
+        // Returns "YYYY-MM-DD" for today in Taiwan time
+        function getTodayTaiwanDate() {
+            const d = new Date(Date.now() + 8 * 3600 * 1000);
+            return `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,'0')}-${String(d.getUTCDate()).padStart(2,'0')}`;
+        }
+
+        // Returns "YYYY-MM-DD" for a given API timestamp, in Taiwan time
+        function getTimestampTaiwanDate(timestamp) {
+            const [datePart, timePart] = timestamp.split('T');
+            const [y, mo, d] = datePart.split('-').map(Number);
+            const [h, mi] = timePart.split(':').map(Number);
+            const utcMs = Date.UTC(y, mo - 1, d, h, mi, 0);
+            const twDate = new Date(utcMs + 8 * 3600 * 1000);
+            return `${twDate.getUTCFullYear()}-${String(twDate.getUTCMonth()+1).padStart(2,'0')}-${String(twDate.getUTCDate()).padStart(2,'0')}`;
+        }
+
+        // Returns "HH:MM:SS" for current Taiwan time (for header clock)
+        function getTaiwanTimeString() {
+            const now = new Date();
+            let h = now.getUTCHours() + 8;
+            if (h >= 24) h -= 24;
+            return `${String(h).padStart(2,'0')}:${String(now.getUTCMinutes()).padStart(2,'0')}:${String(now.getUTCSeconds()).padStart(2,'0')}`;
+        }
+
+        // Trapezoidal cumulative kWh from a history array with real timestamps
+        function calcCumulative(history) {
+            if (!history || history.length < 2) return 0;
+            let total = 0;
+            for (let i = 1; i < history.length; i++) {
+                const dt = (new Date(history[i].timestamp) - new Date(history[i-1].timestamp)) / 3600000; // hours
+                total += ((history[i].value + history[i-1].value) / 2) * dt;
+            }
+            return total;
+        }
+
+        // Compute group totals from a latestMap + devices.groups config
+        function computeGroupTotals(latestMap, groups) {
+            const totals = {};
+            Object.entries(groups || {}).forEach(([group, devs]) => {
+                if (group === "高壓盤") {
+                    totals[group] = (latestMap["一號高壓盤總功率"]?.value || 0) + (latestMap["二號高壓盤總功率"]?.value || 0);
+                } else {
+                    totals[group] = devs.reduce((s, d) => s + (latestMap[d]?.value || 0), 0);
+                }
+            });
+            return totals;
+        }
+
+        // ── Chart.js neon glow plugin ─────────────────────────────────
+
         const glowPlugin = {
             id: 'neonGlow',
             beforeDatasetsDraw(chart) {
@@ -530,14 +317,11 @@
                 chart.ctx.shadowBlur = 14;
                 chart.ctx.shadowColor = 'rgba(0, 245, 212, 0.85)';
             },
-            afterDatasetsDraw(chart) {
-                chart.ctx.restore();
-            }
+            afterDatasetsDraw(chart) { chart.ctx.restore(); }
         };
 
-        // ==============================
-        // LineChart component
-        // ==============================
+        // ── LineChart component ───────────────────────────────────────
+
         function LineChart({ data, height = 300 }) {
             const canvasRef = useRef(null);
             const chartRef = useRef(null);
@@ -545,14 +329,13 @@
             useEffect(() => {
                 if (!canvasRef.current || !data || data.length === 0) return;
                 const ctx = canvasRef.current.getContext('2d');
-
                 if (chartRef.current) chartRef.current.destroy();
 
                 chartRef.current = new Chart(ctx, {
                     type: 'line',
                     plugins: [glowPlugin],
                     data: {
-                        labels: data.map(d => d.label || ''),
+                        labels: data.map(d => d.label),
                         datasets: [{
                             label: '功率 (kW)',
                             data: data.map(d => d.value),
@@ -567,6 +350,7 @@
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
+                        animation: false,
                         plugins: {
                             legend: { display: false },
                             tooltip: {
@@ -583,7 +367,7 @@
                             x: {
                                 display: true,
                                 grid: { color: 'rgba(0, 200, 180, 0.06)' },
-                                ticks: { color: '#3a6080', font: { size: 10 }, maxRotation: 45 }
+                                ticks: { color: '#3a6080', font: { size: 10 }, maxRotation: 45, maxTicksLimit: 12 }
                             },
                             y: {
                                 display: true,
@@ -600,181 +384,162 @@
             return <canvas ref={canvasRef} style={{ height: `${height}px` }} />;
         }
 
-        // ==============================
-        // Time helpers
-        // ==============================
-        function formatTime(timestamp) {
-            const parts = timestamp.split('T');
-            const dateParts = parts[0].split('-');
-            const timeParts = parts[1].split(':');
+        // ── HomePage ──────────────────────────────────────────────────
 
-            const year = parseInt(dateParts[0]);
-            const month = parseInt(dateParts[1]);
-            const day = parseInt(dateParts[2]);
-            const hour = parseInt(timeParts[0]);
-            const minute = parseInt(timeParts[1]);
-            const second = parseFloat(timeParts[2]);
-
-            const utcDate = new Date(Date.UTC(year, month - 1, day, hour, minute, Math.floor(second)));
-            const utcHour = utcDate.getUTCHours();
-
-            let taiwanHour = utcHour + 8;
-            let taiwanDay = day;
-            let taiwanMonth = month;
-
-            if (taiwanHour >= 24) {
-                taiwanHour -= 24;
-                taiwanDay += 1;
-                if (taiwanDay > 31) { taiwanDay = 1; taiwanMonth += 1; }
-            }
-
-            return `${String(taiwanMonth).padStart(2,'0')}-${String(taiwanDay).padStart(2,'0')} ${String(taiwanHour).padStart(2,'0')}:${String(minute).padStart(2,'0')}`;
-        }
-
-        function getTaiwanTimeString() {
-            const now = new Date();
-            let taiwanHour = now.getUTCHours() + 8;
-            if (taiwanHour >= 24) taiwanHour -= 24;
-            return `${String(taiwanHour).padStart(2,'0')}:${String(now.getUTCMinutes()).padStart(2,'0')}:${String(now.getUTCSeconds()).padStart(2,'0')}`;
-        }
-
-        function sampleDataEvery10Minutes(data) {
-            if (!data || data.length === 0) return [];
-            const sampled = [];
-            let lastTimestamp = null;
-            const tenMinutesMs = 10 * 60 * 1000;
-            for (const point of data) {
-                const timestamp = new Date(point.timestamp || point.label).getTime();
-                if (lastTimestamp === null || timestamp - lastTimestamp >= tenMinutesMs) {
-                    sampled.push(point);
-                    lastTimestamp = timestamp;
-                }
-            }
-            return sampled;
-        }
-
-        // ==============================
-        // HomePage
-        // ==============================
         function HomePage() {
-            const [devices, setDevices] = useState({});
-            const [latest, setLatest] = useState([]);
-            const [historyData, setHistoryData] = useState({});
+            const [devices, setDevices]     = useState({});
+            const [latest, setLatest]       = useState([]);
+            const [chartData, setChartData] = useState({});
+            const lastTsRef = useRef(null);
 
+            // Load device list
             useEffect(() => {
                 fetch(`${API_BASE}/api/devices`)
-                    .then(r => r.json())
-                    .then(d => setDevices(d))
+                    .then(r => r.json()).then(d => setDevices(d))
                     .catch(e => console.error(e));
             }, []);
 
+            // Poll latest every 10 s
             useEffect(() => {
-                const fetchLatest = async () => {
+                const poll = async () => {
                     try {
                         const r = await fetch(`${API_BASE}/api/latest`);
                         const d = await r.json();
                         setLatest(d.data || []);
-                    } catch (e) {}
+                    } catch(e) {}
                 };
-                fetchLatest();
-                const interval = setInterval(fetchLatest, 10000);
-                return () => clearInterval(interval);
+                poll();
+                const iv = setInterval(poll, 10000);
+                return () => clearInterval(iv);
             }, []);
 
+            // Load today's history once (when devices ready)
             useEffect(() => {
-                const loadHistory = async () => {
-                    try {
-                        const r = await fetch(`${API_BASE}/api/power-history?device=%E5%85%A8%E5%BB%A0%E7%B8%BD%E7%94%A8%E9%9B%BB&days=7&limit=1000`);
-                        const d = await r.json();
-                        const rawFactoryData = (d.data || []).reverse().map(r => ({
-                            timestamp: r.timestamp,
-                            label: formatTime(r.timestamp),
-                            value: r.value
-                        }));
-                        const factoryData = sampleDataEvery10Minutes(rawFactoryData);
-                        const history = { factory: factoryData };
+                if (!devices.groups || Object.keys(devices.groups).length === 0) return;
+                const today = getTodayTaiwanDate();
 
-                        if (devices.groups) {
-                            for (const [groupName, groupDevs] of Object.entries(devices.groups)) {
-                                const promises = groupDevs.map(dev =>
-                                    fetch(`${API_BASE}/api/power-history?device=${encodeURIComponent(dev)}&days=7&limit=1000`)
-                                        .then(r => r.json()).then(d => d.data || []).catch(() => [])
-                                );
-                                const allData = await Promise.all(promises);
-                                const timeMap = {};
-                                allData.forEach(deviceData => {
-                                    deviceData.forEach(r => {
-                                        if (!timeMap[r.timestamp]) timeMap[r.timestamp] = 0;
-                                        timeMap[r.timestamp] += r.value;
-                                    });
-                                });
-                                const rawGroupData = Object.entries(timeMap)
-                                    .map(([ts, val]) => ({ timestamp: ts, label: formatTime(ts), value: val }))
-                                    .sort((a, b) => a.timestamp.localeCompare(b.timestamp));
-                                history[groupName] = sampleDataEvery10Minutes(rawGroupData);
-                            }
-                        }
-                        setHistoryData(history);
-                    } catch (e) { console.error(e); }
+                const loadHistory = async () => {
+                    const result = {};
+
+                    // Factory total device history
+                    try {
+                        const r = await fetch(`${API_BASE}/api/power-history?device=%E5%85%A8%E5%BB%A0%E7%B8%BD%E7%94%A8%E9%9B%BB&days=1&limit=2000`);
+                        const d = await r.json();
+                        result.factory = (d.data || [])
+                            .filter(p => getTimestampTaiwanDate(p.timestamp) === today)
+                            .reverse()
+                            .map(p => ({ timestamp: p.timestamp, label: formatTimeHHMM(p.timestamp), value: p.value }));
+                    } catch(e) { result.factory = []; }
+
+                    // Each group
+                    for (const [groupName, groupDevs] of Object.entries(devices.groups)) {
+                        try {
+                            const promises = groupDevs.map(dev =>
+                                fetch(`${API_BASE}/api/power-history?device=${encodeURIComponent(dev)}&days=1&limit=2000`)
+                                    .then(r => r.json()).then(d => d.data || []).catch(() => [])
+                            );
+                            const allData = await Promise.all(promises);
+                            const timeMap = {};
+                            allData.forEach(devData => devData.forEach(p => {
+                                if (getTimestampTaiwanDate(p.timestamp) !== today) return;
+                                if (!timeMap[p.timestamp]) timeMap[p.timestamp] = 0;
+                                timeMap[p.timestamp] += p.value;
+                            }));
+                            result[groupName] = Object.entries(timeMap)
+                                .map(([ts, val]) => ({ timestamp: ts, label: formatTimeHHMM(ts), value: val }))
+                                .sort((a, b) => a.timestamp.localeCompare(b.timestamp));
+                        } catch(e) { result[groupName] = []; }
+                    }
+
+                    // Record latest timestamp seen
+                    const allTs = Object.values(result).flat().map(p => p.timestamp).sort();
+                    if (allTs.length > 0) lastTsRef.current = allTs[allTs.length - 1];
+
+                    setChartData(result);
                 };
 
-                if (devices.groups && Object.keys(devices.groups).length > 0) loadHistory();
+                loadHistory();
             }, [devices.groups]);
 
-            const latestMap = {};
+            // Append new data point when latest polling returns a newer timestamp
+            useEffect(() => {
+                if (latest.length === 0 || !devices.groups || Object.keys(chartData).length === 0) return;
+
+                const timestamps = latest.map(r => r.timestamp).filter(Boolean);
+                if (timestamps.length === 0) return;
+                const newestTs = [...timestamps].sort().pop();
+
+                if (newestTs === lastTsRef.current) return;                        // same reading, skip
+                if (getTimestampTaiwanDate(newestTs) !== getTodayTaiwanDate()) return; // different day, skip
+
+                const latestMap = {};
+                latest.forEach(r => { latestMap[r.device_name] = r; });
+                const newLabel = formatTimeHHMM(newestTs);
+                const groups   = devices.groups;
+
+                setChartData(prev => {
+                    const next = { ...prev };
+
+                    // Factory
+                    const factoryDevs = groups["全廠"] || [];
+                    const factoryVal  = factoryDevs.reduce((s, d) => s + (latestMap[d]?.value || 0), 0);
+                    const prevFactory = prev.factory || [];
+                    const lastFactoryTs = prevFactory.length > 0 ? prevFactory[prevFactory.length - 1].timestamp : '';
+                    if (newestTs > lastFactoryTs) {
+                        next.factory = [...prevFactory, { timestamp: newestTs, label: newLabel, value: factoryVal }];
+                    }
+
+                    // Groups
+                    const totals = computeGroupTotals(latestMap, groups);
+                    for (const [groupName] of Object.entries(groups)) {
+                        const prevGroup  = prev[groupName] || [];
+                        const lastGroupTs = prevGroup.length > 0 ? prevGroup[prevGroup.length - 1].timestamp : '';
+                        if (newestTs > lastGroupTs) {
+                            next[groupName] = [...prevGroup, { timestamp: newestTs, label: newLabel, value: totals[groupName] || 0 }];
+                        }
+                    }
+
+                    return next;
+                });
+
+                lastTsRef.current = newestTs;
+            }, [latest, devices.groups, chartData]);
+
+            // Current totals from latest
+            const latestMap   = {};
             latest.forEach(r => { latestMap[r.device_name] = r; });
-
-            const groupTotals = {};
-            Object.entries(devices.groups || {}).forEach(([group, devs]) => {
-                if (group === "高壓盤") {
-                    const p1 = latestMap["一號高壓盤總功率"]?.value || 0;
-                    const p2 = latestMap["二號高壓盤總功率"]?.value || 0;
-                    groupTotals[group] = p1 + p2;
-                } else {
-                    groupTotals[group] = devs.reduce((sum, d) => sum + (latestMap[d]?.value || 0), 0);
-                }
-            });
-
+            const groupTotals = computeGroupTotals(latestMap, devices.groups);
             const factoryTotal = groupTotals["全廠"] || 0;
 
             return (
                 <div>
-                    {/* Factory total */}
                     <div className="factory-total">
                         <div className="corner-tl"></div>
                         <div className="section-label">全廠總用電</div>
-                        <div className="factory-total-value">
-                            <AnimatedNumber value={factoryTotal} />
-                        </div>
+                        <div className="factory-total-value">{factoryTotal.toFixed(1)}</div>
                         <div className="unit-label">kW</div>
                         <div className="chart-container">
-                            {historyData.factory ? (
-                                <LineChart data={historyData.factory} />
+                            {chartData.factory ? (
+                                <LineChart data={chartData.factory} />
                             ) : (
                                 <div className="loading">載入圖表資料...</div>
                             )}
                         </div>
                     </div>
 
-                    {/* Group cards */}
                     <div className="groups-grid">
                         {Object.entries(devices.groups || {}).map(([group, devs]) => (
-                            <div
-                                key={group}
-                                className="group-card"
-                                onClick={() => window.location.hash = `/group/${encodeURIComponent(group)}`}
-                            >
+                            <div key={group} className="group-card"
+                                onClick={() => window.location.hash = `/group/${encodeURIComponent(group)}`}>
                                 <div className="group-card-title">{GROUP_ICONS[group]} {group}</div>
                                 <div className="device-count">{devs.length} 項設備</div>
-                                <div className="group-card-value">
-                                    <AnimatedNumber value={groupTotals[group] || 0} />
-                                </div>
+                                <div className="group-card-value">{(groupTotals[group] || 0).toFixed(1)}</div>
                                 <div className="group-unit">kW</div>
                                 <div className="small-chart-container">
-                                    {historyData[group] && historyData[group].length > 0 ? (
-                                        <LineChart data={historyData[group]} height={140} />
+                                    {chartData[group] && chartData[group].length > 0 ? (
+                                        <LineChart data={chartData[group]} height={140} />
                                     ) : (
-                                        <div style={{ color: '#3a6080', textAlign: 'center', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', letterSpacing: '2px' }}>
+                                        <div style={{ color:'#3a6080', textAlign:'center', height:'100%', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'11px', letterSpacing:'2px' }}>
                                             LOADING...
                                         </div>
                                     )}
@@ -786,14 +551,14 @@
             );
         }
 
-        // ==============================
-        // GroupDetailPage
-        // ==============================
+        // ── GroupDetailPage ───────────────────────────────────────────
+
         function GroupDetailPage({ groupName }) {
             const decodedGroup = decodeURIComponent(groupName);
-            const [devices, setDevices] = useState({});
-            const [latest, setLatest] = useState([]);
-            const [deviceHistory, setDeviceHistory] = useState({});
+            const [devices, setDevices]         = useState({});
+            const [latest, setLatest]           = useState([]);
+            const [deviceChartData, setDCD]     = useState({});
+            const lastTsRef = useRef(null);
 
             useEffect(() => {
                 fetch(`${API_BASE}/api/devices`)
@@ -801,75 +566,106 @@
             }, []);
 
             useEffect(() => {
-                const fetchLatest = async () => {
+                const poll = async () => {
                     try {
                         const r = await fetch(`${API_BASE}/api/latest`);
                         const d = await r.json();
                         setLatest(d.data || []);
-                    } catch (e) { console.error(e); }
+                    } catch(e) {}
                 };
-                fetchLatest();
-                const interval = setInterval(fetchLatest, 10000);
-                return () => clearInterval(interval);
+                poll();
+                const iv = setInterval(poll, 10000);
+                return () => clearInterval(iv);
             }, []);
 
+            // Load today's history for each device in this group
             useEffect(() => {
+                if (!devices.groups?.[decodedGroup]) return;
+                const today    = getTodayTaiwanDate();
+                const groupDevs = devices.groups[decodedGroup];
+
                 const loadHistory = async () => {
-                    const groupDevs = devices.groups?.[decodedGroup] || [];
                     const history = {};
                     for (const dev of groupDevs) {
                         try {
-                            const r = await fetch(`${API_BASE}/api/power-history?device=${encodeURIComponent(dev)}&days=7&limit=1000`);
+                            const r = await fetch(`${API_BASE}/api/power-history?device=${encodeURIComponent(dev)}&days=1&limit=2000`);
                             const d = await r.json();
-                            const rawData = (d.data || []).reverse().map(r => ({
-                                timestamp: r.timestamp, label: formatTime(r.timestamp), value: r.value
-                            }));
-                            history[dev] = sampleDataEvery10Minutes(rawData);
-                        } catch (e) { console.error(e); }
+                            history[dev] = (d.data || [])
+                                .filter(p => getTimestampTaiwanDate(p.timestamp) === today)
+                                .reverse()
+                                .map(p => ({ timestamp: p.timestamp, label: formatTimeHHMM(p.timestamp), value: p.value }));
+                        } catch(e) { history[dev] = []; }
                     }
-                    setDeviceHistory(history);
+
+                    const allTs = Object.values(history).flat().map(p => p.timestamp).sort();
+                    if (allTs.length > 0) lastTsRef.current = allTs[allTs.length - 1];
+
+                    setDCD(history);
                 };
-                if (devices.groups?.[decodedGroup]) loadHistory();
+
+                loadHistory();
             }, [devices.groups, decodedGroup]);
+
+            // Append new point when latest updates
+            useEffect(() => {
+                if (latest.length === 0 || !devices.groups?.[decodedGroup] || Object.keys(deviceChartData).length === 0) return;
+
+                const timestamps = latest.map(r => r.timestamp).filter(Boolean);
+                if (timestamps.length === 0) return;
+                const newestTs = [...timestamps].sort().pop();
+
+                if (newestTs === lastTsRef.current) return;
+                if (getTimestampTaiwanDate(newestTs) !== getTodayTaiwanDate()) return;
+
+                const latestMap = {};
+                latest.forEach(r => { latestMap[r.device_name] = r; });
+                const newLabel   = formatTimeHHMM(newestTs);
+                const groupDevs  = devices.groups[decodedGroup];
+
+                setDCD(prev => {
+                    const next = { ...prev };
+                    for (const dev of groupDevs) {
+                        const reading = latestMap[dev];
+                        if (!reading) continue;
+                        const prevData  = prev[dev] || [];
+                        const lastTs    = prevData.length > 0 ? prevData[prevData.length - 1].timestamp : '';
+                        if (newestTs > lastTs) {
+                            next[dev] = [...prevData, { timestamp: newestTs, label: newLabel, value: reading.value }];
+                        }
+                    }
+                    return next;
+                });
+
+                lastTsRef.current = newestTs;
+            }, [latest, devices.groups, decodedGroup, deviceChartData]);
 
             const latestMap = {};
             latest.forEach(r => { latestMap[r.device_name] = r; });
-
-            const groupDevs = devices.groups?.[decodedGroup] || [];
+            const groupDevs  = devices.groups?.[decodedGroup] || [];
             const groupTotal = groupDevs.reduce((sum, d) => sum + (latestMap[d]?.value || 0), 0);
 
-            const calculateCumulative = (history) => {
-                if (!history || history.length === 0) return 0;
-                const timeIntervalHours = 10 / 3600;
-                return history.reduce((sum, d) => sum + (d.value * timeIntervalHours), 0);
-            };
-
             const groupData = useMemo(() => {
-                if (Object.keys(deviceHistory).length === 0) return [];
+                if (Object.keys(deviceChartData).length === 0) return [];
                 const timeMap = {};
-                Object.values(deviceHistory).forEach(data => {
+                Object.values(deviceChartData).forEach(data => {
                     data.forEach(d => {
-                        if (!timeMap[d.label]) timeMap[d.label] = 0;
-                        timeMap[d.label] += d.value;
+                        if (!timeMap[d.timestamp]) timeMap[d.timestamp] = { label: d.label, value: 0 };
+                        timeMap[d.timestamp].value += d.value;
                     });
                 });
                 return Object.entries(timeMap)
-                    .map(([label, value]) => ({ label, value }))
-                    .sort((a, b) => a.label.localeCompare(b.label));
-            }, [deviceHistory]);
+                    .map(([ts, { label, value }]) => ({ timestamp: ts, label, value }))
+                    .sort((a, b) => a.timestamp.localeCompare(b.timestamp));
+            }, [deviceChartData]);
 
             return (
                 <div>
-                    <button className="back-button" onClick={() => window.location.hash = '/'}>
-                        ← 返回首頁
-                    </button>
+                    <button className="back-button" onClick={() => window.location.hash = '/'}>← 返回首頁</button>
 
                     <div className="factory-total">
                         <div className="corner-tl"></div>
                         <div className="section-label">{GROUP_ICONS[decodedGroup]} {decodedGroup} — 分組總用電</div>
-                        <div className="factory-total-value">
-                            <AnimatedNumber value={groupTotal} />
-                        </div>
+                        <div className="factory-total-value">{groupTotal.toFixed(1)}</div>
                         <div className="unit-label">kW</div>
                         <div className="chart-container">
                             {groupData.length > 0 ? (
@@ -882,9 +678,9 @@
 
                     <div className="devices-list">
                         {groupDevs.map(dev => {
-                            const reading = latestMap[dev];
-                            const history = deviceHistory[dev] || [];
-                            const cumulative = calculateCumulative(history);
+                            const reading    = latestMap[dev];
+                            const history    = deviceChartData[dev] || [];
+                            const cumulative = calcCumulative(history);
 
                             return (
                                 <div key={dev} className="device-card">
@@ -892,16 +688,12 @@
                                     <div className="device-metrics">
                                         <div className="metric">
                                             <div className="metric-label">即時用電</div>
-                                            <div className="metric-value">
-                                                {reading ? <AnimatedNumber value={reading.value} /> : '—'}
-                                            </div>
+                                            <div className="metric-value">{reading ? reading.value.toFixed(1) : '—'}</div>
                                             <div className="metric-unit">kW</div>
                                         </div>
                                         <div className="metric">
-                                            <div className="metric-label">7日累計</div>
-                                            <div className="metric-value">
-                                                <AnimatedNumber value={cumulative} />
-                                            </div>
+                                            <div className="metric-label">今日累計</div>
+                                            <div className="metric-value">{cumulative.toFixed(1)}</div>
                                             <div className="metric-unit">kWh</div>
                                         </div>
                                     </div>
@@ -909,7 +701,7 @@
                                         {history.length > 0 ? (
                                             <LineChart data={history} height={190} />
                                         ) : (
-                                            <div className="loading" style={{ height: '100%' }}>LOADING...</div>
+                                            <div className="loading" style={{ height:'100%' }}>LOADING...</div>
                                         )}
                                     </div>
                                 </div>
@@ -920,13 +712,12 @@
             );
         }
 
-        // ==============================
-        // App (root)
-        // ==============================
+        // ── App (root) ────────────────────────────────────────────────
+
         function App() {
-            const [page, setPage] = useState('/');
+            const [page, setPage]           = useState('/');
             const [groupName, setGroupName] = useState(null);
-            const [, forceUpdate] = useState(0);
+            const [, forceUpdate]           = useState(0);
 
             useEffect(() => {
                 const handleHash = () => {
@@ -943,18 +734,16 @@
                 return () => window.removeEventListener('hashchange', handleHash);
             }, []);
 
-            // Clock update every second
+            // Clock ticks every second
             useEffect(() => {
-                const interval = setInterval(() => forceUpdate(p => p + 1), 1000);
-                return () => clearInterval(interval);
+                const iv = setInterval(() => forceUpdate(p => p + 1), 1000);
+                return () => clearInterval(iv);
             }, []);
 
             return (
                 <div className="app-container">
                     <header className="header">
-                        <div className="header-title" onClick={() => window.location.hash = '/'}>
-                            ⚡ 電力監控儀表板
-                        </div>
+                        <div className="header-title" onClick={() => window.location.hash = '/'}>⚡ 電力監控儀表板</div>
                         <div className="header-right">
                             <div className="status-dot"></div>
                             <span>ONLINE · {getTaiwanTimeString()}</span>
