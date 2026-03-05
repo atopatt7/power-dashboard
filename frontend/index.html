@@ -293,6 +293,29 @@
             return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
         }
 
+        // Round down to nearest 5-minute boundary (minutes since midnight)
+        function get5MinBucket(minutes) {
+            return Math.floor(minutes / 5) * 5;
+        }
+
+        // Resample [{label:"HH:MM", value, timestamp?}] into 5-minute averages
+        function resampleTo5Min(data) {
+            if (!data || data.length === 0) return [];
+            const buckets = new Map(); // bucket_minutes → { sum, count, timestamp }
+            data.forEach(d => {
+                const bucket = get5MinBucket(timeToMinutes(d.label));
+                const prev   = buckets.get(bucket) || { sum: 0, count: 0, timestamp: d.timestamp || '' };
+                buckets.set(bucket, { sum: prev.sum + d.value, count: prev.count + 1, timestamp: d.timestamp || prev.timestamp });
+            });
+            return Array.from(buckets.entries())
+                .sort((a, b) => a[0] - b[0])
+                .map(([bucket, { sum, count, timestamp }]) => ({
+                    timestamp,
+                    label: minutesToHHMM(bucket),
+                    value: sum / count,
+                }));
+        }
+
         function calcCumulative(history) {
             if (!history || history.length < 2) return 0;
             let total = 0;
@@ -543,7 +566,8 @@
             const [devices, setDevices]     = useState({});
             const [latest, setLatest]       = useState([]);
             const [chartData, setChartData] = useState({});
-            const lastTsRef = useRef(null);
+            const lastTsRef    = useRef(null);
+            const rtBucketRef  = useRef(null); // { bucket, sums:{key→n}, counts:{key→n} }
 
             // Load device list
             useEffect(() => {
@@ -574,17 +598,18 @@
                 const loadHistory = async () => {
                     const result = {};
 
-                    // Factory total device history
+                    // Factory total device history → 5-min average
                     try {
                         const r = await fetch(`${API_BASE}/api/power-history?device=%E5%85%A8%E5%BB%A0%E7%B8%BD%E7%94%A8%E9%9B%BB&days=1&limit=2000`);
                         const d = await r.json();
-                        result.factory = (d.data || [])
+                        const raw = (d.data || [])
                             .filter(p => getTimestampTaiwanDate(p.timestamp) === today)
                             .reverse()
                             .map(p => ({ timestamp: p.timestamp, label: formatTimeHHMM(p.timestamp), value: p.value }));
+                        result.factory = resampleTo5Min(raw);
                     } catch(e) { result.factory = []; }
 
-                    // Each group
+                    // Each group → 5-min average
                     for (const [groupName, groupDevs] of Object.entries(devices.groups)) {
                         try {
                             const promises = groupDevs.map(dev =>
@@ -598,9 +623,10 @@
                                 if (!timeMap[p.timestamp]) timeMap[p.timestamp] = 0;
                                 timeMap[p.timestamp] += p.value;
                             }));
-                            result[groupName] = Object.entries(timeMap)
+                            const rawGroup = Object.entries(timeMap)
                                 .map(([ts, val]) => ({ timestamp: ts, label: formatTimeHHMM(ts), value: val }))
                                 .sort((a, b) => a.timestamp.localeCompare(b.timestamp));
+                            result[groupName] = resampleTo5Min(rawGroup);
                         } catch(e) { result[groupName] = []; }
                     }
 
@@ -614,7 +640,9 @@
                 loadHistory();
             }, [devices.groups]);
 
-            // Append new data point when latest polling returns a newer timestamp
+            // Real-time update: 5-minute rolling average
+            // Same bucket  → update the last chart point (running average)
+            // New bucket   → append a fresh point
             useEffect(() => {
                 if (latest.length === 0 || !devices.groups || Object.keys(chartData).length === 0) return;
 
@@ -622,38 +650,70 @@
                 if (timestamps.length === 0) return;
                 const newestTs = [...timestamps].sort().pop();
 
-                if (newestTs === lastTsRef.current) return;                        // same reading, skip
-                if (getTimestampTaiwanDate(newestTs) !== getTodayTaiwanDate()) return; // different day, skip
+                if (newestTs === lastTsRef.current) return;
+                if (getTimestampTaiwanDate(newestTs) !== getTodayTaiwanDate()) return;
 
-                const latestMap = {};
+                const latestMap   = {};
                 latest.forEach(r => { latestMap[r.device_name] = r; });
-                const newLabel = formatTimeHHMM(newestTs);
-                const groups   = devices.groups;
+                const newLabel    = formatTimeHHMM(newestTs);
+                const newBucket   = get5MinBucket(timeToMinutes(newLabel));
+                const bucketLabel = minutesToHHMM(newBucket);
+                const groups      = devices.groups;
 
-                setChartData(prev => {
-                    const next = { ...prev };
+                const factoryDevs = groups["全廠"] || [];
+                const factoryVal  = factoryDevs.reduce((s, d) => s + (latestMap[d]?.value || 0), 0);
+                const totals      = computeGroupTotals(latestMap, groups);
 
-                    // Factory
-                    const factoryDevs = groups["全廠"] || [];
-                    const factoryVal  = factoryDevs.reduce((s, d) => s + (latestMap[d]?.value || 0), 0);
-                    const prevFactory = prev.factory || [];
-                    const lastFactoryTs = prevFactory.length > 0 ? prevFactory[prevFactory.length - 1].timestamp : '';
-                    if (newestTs > lastFactoryTs) {
-                        next.factory = [...prevFactory, { timestamp: newestTs, label: newLabel, value: factoryVal }];
+                const rb           = rtBucketRef.current;
+                const isSameBucket = rb && rb.bucket === newBucket;
+
+                if (isSameBucket) {
+                    // Accumulate into running average, replace last point
+                    rb.sums.factory = (rb.sums.factory || 0) + factoryVal;
+                    rb.counts.factory = (rb.counts.factory || 0) + 1;
+                    for (const gName of Object.keys(groups)) {
+                        rb.sums[gName]   = (rb.sums[gName]   || 0) + (totals[gName] || 0);
+                        rb.counts[gName] = (rb.counts[gName] || 0) + 1;
                     }
-
-                    // Groups
-                    const totals = computeGroupTotals(latestMap, groups);
-                    for (const [groupName] of Object.entries(groups)) {
-                        const prevGroup  = prev[groupName] || [];
-                        const lastGroupTs = prevGroup.length > 0 ? prevGroup[prevGroup.length - 1].timestamp : '';
-                        if (newestTs > lastGroupTs) {
-                            next[groupName] = [...prevGroup, { timestamp: newestTs, label: newLabel, value: totals[groupName] || 0 }];
+                    setChartData(prev => {
+                        const next = {};
+                        for (const key of Object.keys(prev)) {
+                            const arr = prev[key];
+                            if (!arr || arr.length === 0) { next[key] = arr; continue; }
+                            if (rb.sums[key] !== undefined && rb.counts[key]) {
+                                const updated = [...arr];
+                                updated[updated.length - 1] = { ...updated[updated.length - 1], value: rb.sums[key] / rb.counts[key] };
+                                next[key] = updated;
+                            } else {
+                                next[key] = arr;
+                            }
                         }
-                    }
+                        return next;
+                    });
+                } else {
+                    // New 5-min bucket: reset accumulator and append
+                    const sums   = { factory: factoryVal };
+                    const counts = { factory: 1 };
+                    for (const gName of Object.keys(groups)) { sums[gName] = totals[gName] || 0; counts[gName] = 1; }
+                    rtBucketRef.current = { bucket: newBucket, sums, counts };
 
-                    return next;
-                });
+                    setChartData(prev => {
+                        const next = { ...prev };
+                        const prevFactory    = prev.factory || [];
+                        const lastFLabel     = prevFactory.length > 0 ? prevFactory[prevFactory.length - 1].label : '';
+                        if (bucketLabel !== lastFLabel) {
+                            next.factory = [...prevFactory, { timestamp: newestTs, label: bucketLabel, value: factoryVal }];
+                        }
+                        for (const [gName] of Object.entries(groups)) {
+                            const prevGroup   = prev[gName] || [];
+                            const lastGLabel  = prevGroup.length > 0 ? prevGroup[prevGroup.length - 1].label : '';
+                            if (bucketLabel !== lastGLabel) {
+                                next[gName] = [...prevGroup, { timestamp: newestTs, label: bucketLabel, value: totals[gName] || 0 }];
+                            }
+                        }
+                        return next;
+                    });
+                }
 
                 lastTsRef.current = newestTs;
             }, [latest, devices.groups, chartData]);
@@ -711,7 +771,8 @@
             const [devices, setDevices]         = useState({});
             const [latest, setLatest]           = useState([]);
             const [deviceChartData, setDCD]     = useState({});
-            const lastTsRef = useRef(null);
+            const lastTsRef   = useRef(null);
+            const rtBucketRef = useRef(null); // { bucket, sums:{[dev]→n}, counts:{[dev]→n} }
 
             useEffect(() => {
                 fetch(`${API_BASE}/api/devices`)
@@ -743,10 +804,11 @@
                         try {
                             const r = await fetch(`${API_BASE}/api/power-history?device=${encodeURIComponent(dev)}&days=1&limit=2000`);
                             const d = await r.json();
-                            history[dev] = (d.data || [])
+                            const raw = (d.data || [])
                                 .filter(p => getTimestampTaiwanDate(p.timestamp) === today)
                                 .reverse()
                                 .map(p => ({ timestamp: p.timestamp, label: formatTimeHHMM(p.timestamp), value: p.value }));
+                            history[dev] = resampleTo5Min(raw);
                         } catch(e) { history[dev] = []; }
                     }
 
@@ -759,7 +821,7 @@
                 loadHistory();
             }, [devices.groups, decodedGroup]);
 
-            // Append new point when latest updates
+            // Real-time update: 5-minute rolling average per device
             useEffect(() => {
                 if (latest.length === 0 || !devices.groups?.[decodedGroup] || Object.keys(deviceChartData).length === 0) return;
 
@@ -770,24 +832,56 @@
                 if (newestTs === lastTsRef.current) return;
                 if (getTimestampTaiwanDate(newestTs) !== getTodayTaiwanDate()) return;
 
-                const latestMap = {};
+                const latestMap   = {};
                 latest.forEach(r => { latestMap[r.device_name] = r; });
-                const newLabel   = formatTimeHHMM(newestTs);
-                const groupDevs  = devices.groups[decodedGroup];
+                const newLabel    = formatTimeHHMM(newestTs);
+                const newBucket   = get5MinBucket(timeToMinutes(newLabel));
+                const bucketLabel = minutesToHHMM(newBucket);
+                const groupDevs   = devices.groups[decodedGroup];
 
-                setDCD(prev => {
-                    const next = { ...prev };
+                const rb           = rtBucketRef.current;
+                const isSameBucket = rb && rb.bucket === newBucket;
+
+                if (isSameBucket) {
                     for (const dev of groupDevs) {
                         const reading = latestMap[dev];
                         if (!reading) continue;
-                        const prevData  = prev[dev] || [];
-                        const lastTs    = prevData.length > 0 ? prevData[prevData.length - 1].timestamp : '';
-                        if (newestTs > lastTs) {
-                            next[dev] = [...prevData, { timestamp: newestTs, label: newLabel, value: reading.value }];
-                        }
+                        rb.sums[dev]   = (rb.sums[dev]   || 0) + reading.value;
+                        rb.counts[dev] = (rb.counts[dev] || 0) + 1;
                     }
-                    return next;
-                });
+                    setDCD(prev => {
+                        const next = { ...prev };
+                        for (const dev of groupDevs) {
+                            const arr = prev[dev] || [];
+                            if (arr.length === 0 || rb.sums[dev] === undefined) continue;
+                            const updated = [...arr];
+                            updated[updated.length - 1] = { ...updated[updated.length - 1], value: rb.sums[dev] / rb.counts[dev] };
+                            next[dev] = updated;
+                        }
+                        return next;
+                    });
+                } else {
+                    const sums = {}, counts = {};
+                    for (const dev of groupDevs) {
+                        sums[dev]   = latestMap[dev]?.value || 0;
+                        counts[dev] = 1;
+                    }
+                    rtBucketRef.current = { bucket: newBucket, sums, counts };
+
+                    setDCD(prev => {
+                        const next = { ...prev };
+                        for (const dev of groupDevs) {
+                            const reading = latestMap[dev];
+                            if (!reading) continue;
+                            const prevData  = prev[dev] || [];
+                            const lastLabel = prevData.length > 0 ? prevData[prevData.length - 1].label : '';
+                            if (bucketLabel !== lastLabel) {
+                                next[dev] = [...prevData, { timestamp: newestTs, label: bucketLabel, value: reading.value }];
+                            }
+                        }
+                        return next;
+                    });
+                }
 
                 lastTsRef.current = newestTs;
             }, [latest, devices.groups, decodedGroup, deviceChartData]);
@@ -797,18 +891,19 @@
             const groupDevs  = devices.groups?.[decodedGroup] || [];
             const groupTotal = groupDevs.reduce((sum, d) => sum + (latestMap[d]?.value || 0), 0);
 
+            // Aggregate per-device 5-min buckets by label (bucket start HH:MM)
             const groupData = useMemo(() => {
                 if (Object.keys(deviceChartData).length === 0) return [];
-                const timeMap = {};
+                const labelMap = {};
                 Object.values(deviceChartData).forEach(data => {
                     data.forEach(d => {
-                        if (!timeMap[d.timestamp]) timeMap[d.timestamp] = { label: d.label, value: 0 };
-                        timeMap[d.timestamp].value += d.value;
+                        if (!labelMap[d.label]) labelMap[d.label] = { value: 0, timestamp: d.timestamp || '' };
+                        labelMap[d.label].value += d.value;
                     });
                 });
-                return Object.entries(timeMap)
-                    .map(([ts, { label, value }]) => ({ timestamp: ts, label, value }))
-                    .sort((a, b) => a.timestamp.localeCompare(b.timestamp));
+                return Object.entries(labelMap)
+                    .map(([label, { value, timestamp }]) => ({ timestamp, label, value }))
+                    .sort((a, b) => a.label.localeCompare(b.label));
             }, [deviceChartData]);
 
             return (
