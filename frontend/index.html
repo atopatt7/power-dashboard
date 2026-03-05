@@ -219,6 +219,23 @@
         .metric-unit { font-size: 9px; color: var(--text-secondary); letter-spacing: 2px; margin-top: 3px; text-transform: uppercase; }
         .device-chart { position: relative; height: 190px; margin-top: 12px; }
 
+        /* ── RANGE BUTTONS ── */
+        .range-buttons { display: flex; gap: 4px; }
+        .range-btn {
+            font-family: 'Orbitron', monospace; font-size: 9px; font-weight: 700;
+            letter-spacing: 1.5px; text-transform: uppercase;
+            padding: 4px 10px; border-radius: 2px; cursor: pointer;
+            border: 1px solid rgba(0, 200, 180, 0.2);
+            background: transparent; color: var(--text-secondary);
+            transition: all 0.18s;
+        }
+        .range-btn:hover { border-color: var(--accent); color: var(--accent); }
+        .range-btn.active {
+            background: rgba(0, 245, 212, 0.12);
+            border-color: var(--accent); color: var(--accent);
+            box-shadow: 0 0 8px rgba(0, 245, 212, 0.25);
+        }
+
         /* ── FORECAST CARD ── */
         .forecast-card {
             background: var(--bg-card);
@@ -477,11 +494,13 @@
         };
 
         // ── ForecastChart component ───────────────────────────────────
-        // historicalData: [{label:"HH:MM", value}]  (today's 5-min averages)
-        // forecastData:   [{time:"HH:MM", minute, value, over_threshold}]
-        // threshold: number (draws horizontal alert line)
+        // historicalData : [{label:"HH:MM", value}]  today's 5-min averages
+        // forecastData   : [{minute, value, over_threshold}]
+        // weekData       : [{x: relMinFromNow, y: kW}]  pre-processed 7d points
+        // timeRange      : '1h' | '6h' | '24h' | '7d'
+        // All datasets are converted to x = "minutes relative to now (Taiwan)"
 
-        function ForecastChart({ historicalData, forecastData, threshold = 700, height = 280 }) {
+        function ForecastChart({ historicalData, forecastData, weekData, threshold = 700, height = 280, timeRange = '24h' }) {
             const canvasRef  = useRef(null);
             const chartRef   = useRef(null);
             const tooltipRef = useRef(null);
@@ -491,19 +510,60 @@
                 const ctx = canvasRef.current.getContext('2d');
                 if (chartRef.current) chartRef.current.destroy();
 
-                const histPoints = (historicalData || []).map(d => ({
-                    x: timeToMinutes(d.label), y: d.value
-                }));
+                // Taiwan "now" — stable for this render
+                const nowUTC      = Date.now();
+                const nowTW       = new Date(nowUTC + 8 * 3600000);
+                const nowMinOfDay = nowTW.getUTCHours() * 60 + nowTW.getUTCMinutes();
+
+                // ── Convert data → relative minutes from now ──────────
+                const histPoints = timeRange === '7d'
+                    ? (weekData || [])
+                    : (historicalData || []).map(d => ({
+                        x: timeToMinutes(d.label) - nowMinOfDay,
+                        y: d.value,
+                    }));
+
                 const predPoints = (forecastData || []).map(d => ({
-                    x: d.minute, y: d.value
+                    x: d.minute - nowMinOfDay,
+                    y: d.value,
                 }));
 
-                // Find connection point: last historical point → first forecast point
-                const connectorPoints = [];
-                if (histPoints.length > 0 && predPoints.length > 0) {
-                    connectorPoints.push(histPoints[histPoints.length - 1]);
-                    connectorPoints.push(predPoints[0]);
-                }
+                // ── X-axis config per range ───────────────────────────
+                const xCfg = {
+                    '1h':  { min: -60,           max: 240, step: 30   },
+                    '6h':  { min: -360,          max: 240, step: 60   },
+                    '24h': { min: -nowMinOfDay,  max: 240, step: 120  },
+                    '7d':  { min: -7 * 1440,     max: 240, step: 1440 },
+                };
+                const { min: xMin, max: xMax, step: tickStep } = xCfg[timeRange] || xCfg['24h'];
+
+                // ── Tick builder ──────────────────────────────────────
+                const buildTicks = (axis) => {
+                    const ticks = [];
+                    if (timeRange === '7d') {
+                        // Align to midnight boundaries in Taiwan time
+                        for (let d = 0; d <= 7; d++) {
+                            const v = -nowMinOfDay - d * 1440;
+                            if (v >= xMin && v <= xMax) ticks.unshift({ value: v });
+                        }
+                    } else {
+                        let t = Math.ceil(xMin / tickStep) * tickStep;
+                        while (t <= xMax) { ticks.push({ value: t }); t += tickStep; }
+                    }
+                    axis.ticks = ticks;
+                };
+
+                // ── Tick / tooltip label ──────────────────────────────
+                const fmtLabel = (relMin, withDate = false) => {
+                    const absMs  = nowUTC + Math.round(relMin) * 60000;
+                    const twDate = new Date(absMs + 8 * 3600000);
+                    const h  = String(twDate.getUTCHours()).padStart(2, '0');
+                    const m  = String(twDate.getUTCMinutes()).padStart(2, '0');
+                    const mo = twDate.getUTCMonth() + 1;
+                    const dy = twDate.getUTCDate();
+                    if (timeRange === '7d') return withDate ? `${mo}/${dy} ${h}:${m}` : `${mo}/${dy}`;
+                    return `${h}:${m}`;
+                };
 
                 chartRef.current = new Chart(ctx, {
                     type: 'line',
@@ -511,61 +571,45 @@
                     data: {
                         datasets: [
                             {
-                                label: '今日用電 (kW)',
+                                label: '歷史用電',
                                 data: histPoints,
                                 borderColor: '#00aaff',
                                 backgroundColor: 'rgba(0, 170, 255, 0.07)',
-                                borderWidth: 2,
-                                pointRadius: 0,
-                                tension: 0.35,
-                                fill: true,
-                                order: 2,
+                                borderWidth: 2, pointRadius: 0, tension: 0.35,
+                                fill: true, order: 2,
                             },
                             {
-                                label: '未來預測 (kW)',
+                                label: '預測趨勢',
                                 data: predPoints,
                                 borderColor: '#ff9500',
                                 backgroundColor: 'rgba(255, 149, 0, 0.07)',
-                                borderWidth: 2,
-                                borderDash: [8, 4],
-                                pointRadius: 0,
-                                tension: 0.35,
-                                fill: true,
-                                order: 1,
+                                borderWidth: 2, borderDash: [8, 4],
+                                pointRadius: 0, tension: 0.35,
+                                fill: true, order: 1,
                             },
                         ]
                     },
                     options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        animation: false,
+                        responsive: true, maintainAspectRatio: false, animation: false,
                         _threshold: threshold,
-                        interaction: { mode: 'index', intersect: false },
-                        plugins: {
-                            legend: { display: false },
-                            tooltip: { enabled: false },
-                        },
+                        plugins: { legend: { display: false }, tooltip: { enabled: false } },
                         scales: {
                             x: {
-                                type: 'linear', min: 0, max: 1440,
+                                type: 'linear', min: xMin, max: xMax,
+                                afterBuildTicks: buildTicks,
                                 ticks: {
-                                    stepSize: 60,
                                     color: '#3a6080', font: { size: 10, family: 'Courier New' },
-                                    callback: v => {
-                                        const m = Math.round(v);
-                                        if (m % 60 !== 0) return '';
-                                        return minutesToHHMM(m);
-                                    },
                                     maxRotation: 0,
+                                    callback: (val) => fmtLabel(val),
                                 },
                                 grid: { color: 'rgba(0, 200, 180, 0.06)' },
                                 border: { color: 'rgba(0, 200, 180, 0.15)' },
                             },
                             y: {
+                                beginAtZero: true,
                                 ticks: { color: '#3a6080', font: { size: 10, family: 'Courier New' }, callback: v => v + ' kW' },
                                 grid: { color: 'rgba(0, 200, 180, 0.06)' },
                                 border: { color: 'rgba(0, 200, 180, 0.15)' },
-                                beginAtZero: true,
                             }
                         }
                     }
@@ -574,7 +618,7 @@
                 // Mouse crosshair + tooltip
                 const canvas = canvasRef.current;
                 const onMouseMove = (e) => {
-                    const rect = canvas.getBoundingClientRect();
+                    const rect  = canvas.getBoundingClientRect();
                     const chart = chartRef.current;
                     if (!chart) return;
                     const mx = e.clientX - rect.left;
@@ -585,7 +629,6 @@
                         chart.draw(); return;
                     }
                     const xVal = scales.x.getValueForPixel(mx);
-                    // Find nearest point across both datasets
                     let nearest = null, minDist = Infinity;
                     chart.data.datasets.forEach(ds => {
                         (ds.data || []).forEach(pt => {
@@ -599,13 +642,16 @@
                     chart._crosshair = { x: px, y: py };
                     chart.draw();
                     if (tooltipRef.current) {
-                        const tip = tooltipRef.current;
-                        const label = minutesToHHMM(nearest.x);
+                        const tip    = tooltipRef.current;
+                        const label  = fmtLabel(nearest.x, true);
                         const isOver = nearest.y > threshold;
                         tip.style.display = 'block';
-                        tip.innerHTML = `<span style="font-family:'Orbitron',monospace;font-size:14px;color:${isOver ? '#ff6680' : '#00f5d4'};font-weight:700;">${nearest.y.toFixed(1)}</span><span style="font-size:10px;color:#3a6080;"> kW</span><br><span style="font-size:10px;color:#3a6080;font-family:'Courier New',monospace;">${label}</span>`;
+                        tip.innerHTML =
+                            `<span style="font-family:'Orbitron',monospace;font-size:14px;color:${isOver?'#ff6680':'#00f5d4'};font-weight:700;">${nearest.y.toFixed(1)}</span>` +
+                            `<span style="font-size:10px;color:#3a6080;"> kW</span><br>` +
+                            `<span style="font-size:10px;color:#3a6080;font-family:'Courier New',monospace;">${label}</span>`;
                         let tx = px + 12, ty = py - 40;
-                        if (tx + 115 > chartArea.right + 20) tx = px - 129;
+                        if (tx + 120 > chartArea.right + 20) tx = px - 134;
                         if (ty < chartArea.top) ty = py + 8;
                         tip.style.left = tx + 'px';
                         tip.style.top  = ty + 'px';
@@ -622,7 +668,7 @@
                     canvas.removeEventListener('mouseleave', onMouseLeave);
                     if (chartRef.current) { chartRef.current.destroy(); chartRef.current = null; }
                 };
-            }, [historicalData, forecastData, threshold]);
+            }, [historicalData, forecastData, weekData, threshold, timeRange]);
 
             return (
                 <div style={{ position: 'relative', height: `${height}px` }}>
@@ -686,18 +732,21 @@
                             x: {
                                 type: 'linear',
                                 min: 0,
-                                max: 1440,           // 24:00 so last tick 23:00 shows cleanly
+                                max: 1440,
                                 grid: { color: 'rgba(0, 200, 180, 0.06)' },
+                                afterBuildTicks: (axis) => {
+                                    // Force ticks at exact whole-hour positions only.
+                                    // step = smallest multiple of 60 that gives ≤ maxTicks labels.
+                                    const step = Math.ceil(24 / maxTicks) * 60;
+                                    const ticks = [];
+                                    for (let m = 0; m < 1440; m += step) ticks.push({ value: m });
+                                    axis.ticks = ticks;
+                                },
                                 ticks: {
                                     color: '#3a6080',
                                     font: { size: 10 },
-                                    stepSize: 60,        // generate a tick every hour
-                                    maxTicksLimit: maxTicks,
-                                    callback: (val) => {
-                                        const m = Math.round(val);
-                                        if (m % 60 !== 0) return '';   // hide non-hour ticks
-                                        return minutesToHHMM(m);
-                                    },
+                                    maxRotation: 0,
+                                    callback: (val) => minutesToHHMM(Math.round(val)),
                                 }
                             },
                             y: {
@@ -816,6 +865,8 @@
             const [latest, setLatest]       = useState([]);
             const [chartData, setChartData] = useState({});
             const [forecastResult, setForecastResult] = useState(null);
+            const [timeRange, setTimeRange] = useState('24h');
+            const [weekData, setWeekData]   = useState([]);
             const lastTsRef    = useRef(null);
             const rtBucketRef  = useRef(null); // { bucket, sums:{key→n}, counts:{key→n} }
 
@@ -838,6 +889,30 @@
                 const iv = setInterval(fetchForecast, 5 * 60 * 1000);
                 return () => clearInterval(iv);
             }, []);
+
+            // Fetch 7-day history when that range is selected
+            useEffect(() => {
+                if (timeRange !== '7d') return;
+                fetch(`${API_BASE}/api/power-history?device=${encodeURIComponent('全廠總用電')}&days=7&limit=50000`)
+                    .then(r => r.json())
+                    .then(d => {
+                        const raw    = (d.data || []).reverse();
+                        const nowUTC = Date.now();
+                        // Resample to 30-min buckets, x = minutes relative to now
+                        const buckets = new Map();
+                        raw.forEach(p => {
+                            const tsMs  = new Date(p.timestamp.replace(' ', 'T') + 'Z').getTime();
+                            const relMin = (tsMs - nowUTC) / 60000;
+                            const bucket = Math.floor(relMin / 30) * 30;
+                            if (!buckets.has(bucket)) buckets.set(bucket, { sum: 0, count: 0 });
+                            const b = buckets.get(bucket); b.sum += p.value; b.count++;
+                        });
+                        const result = Array.from(buckets.entries())
+                            .sort((a, b) => a[0] - b[0])
+                            .map(([bucket, { sum, count }]) => ({ x: bucket, y: Math.round(sum / count * 10) / 10 }));
+                        setWeekData(result);
+                    }).catch(() => {});
+            }, [timeRange]);
 
             // Poll latest every 10 s
             useEffect(() => {
@@ -991,60 +1066,67 @@
                 <div>
                     <div className="factory-total">
                         <div className="corner-tl"></div>
-                        <div className="section-label">全廠總用電</div>
-                        <div className="factory-total-value">{factoryTotal.toFixed(1)}</div>
-                        <div className="unit-label">kW</div>
-                        <div className="chart-container">
-                            {chartData.factory ? (
-                                <LineChart data={chartData.factory} height={258} maxTicks={12} showCrosshair={true} />
-                            ) : (
-                                <div className="loading">載入圖表資料...</div>
-                            )}
-                        </div>
-                    </div>
 
-                    {/* ── 尖峰預測卡片 ── */}
-                    {forecastResult && (
-                        <div className="forecast-card">
-                            <div className="forecast-header">
-                                <div className="forecast-title">🔮 尖峰預測 — 未來 4 小時</div>
-                                <div className="forecast-meta">
-                                    更新於 {forecastResult.generated_at?.slice(11,16)} ·
-                                    修正係數 ×{forecastResult.correction_ratio}
-                                </div>
+                        {/* ── 標題列：數值 + 切換按鈕 ── */}
+                        <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', marginBottom:'4px' }}>
+                            <div>
+                                <div className="section-label">全廠總用電</div>
+                                <div className="factory-total-value">{factoryTotal.toFixed(1)}</div>
+                                <div className="unit-label">kW</div>
                             </div>
-
-                            {forecastResult.forecast?.some(f => f.over_threshold) && (
-                                <div className="forecast-alert">
-                                    <div className="forecast-alert-dot"></div>
-                                    預測 {forecastResult.forecast.filter(f => f.over_threshold).length * 5} 分鐘
-                                    內超過警戒值 {THRESHOLD_KW} kW，建議提前調度高耗電設備至離峰時段
+                            <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:'8px', paddingTop:'2px' }}>
+                                <div className="range-buttons">
+                                    {['1h','6h','24h','7d'].map(r => (
+                                        <button key={r}
+                                            className={`range-btn${timeRange===r?' active':''}`}
+                                            onClick={() => setTimeRange(r)}>{r}
+                                        </button>
+                                    ))}
                                 </div>
-                            )}
+                                {forecastResult && (
+                                    <div style={{ fontSize:'10px', color:'var(--text-secondary)', fontFamily:'Courier New', letterSpacing:'1px' }}>
+                                        預測更新 {forecastResult.generated_at?.slice(11,16)} · ×{forecastResult.correction_ratio}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
 
+                        {/* ── 超標警示 ── */}
+                        {forecastResult?.forecast?.some(f => f.over_threshold) && (
+                            <div className="forecast-alert">
+                                <div className="forecast-alert-dot"></div>
+                                預測 {forecastResult.forecast.filter(f => f.over_threshold).length * 5} 分鐘內超過警戒值 {THRESHOLD_KW} kW，建議提前調度高耗電設備至離峰時段
+                            </div>
+                        )}
+
+                        {/* ── 合併圖表 ── */}
+                        <div className="chart-container">
                             <ForecastChart
                                 historicalData={chartData.factory || []}
-                                forecastData={forecastResult.forecast || []}
+                                forecastData={forecastResult?.forecast || []}
+                                weekData={weekData}
                                 threshold={THRESHOLD_KW}
                                 height={280}
+                                timeRange={timeRange}
                             />
+                        </div>
 
-                            <div className="forecast-legend">
-                                <div className="legend-item">
-                                    <div className="legend-line hist"></div>
-                                    <span>今日用電</span>
-                                </div>
-                                <div className="legend-item">
-                                    <div className="legend-line pred"></div>
-                                    <span>預測趨勢</span>
-                                </div>
-                                <div className="legend-item">
-                                    <div className="legend-line thresh"></div>
-                                    <span>警戒線 {THRESHOLD_KW} kW</span>
-                                </div>
+                        {/* ── 圖例 ── */}
+                        <div className="forecast-legend">
+                            <div className="legend-item">
+                                <div className="legend-line hist"></div>
+                                <span>歷史用電</span>
+                            </div>
+                            <div className="legend-item">
+                                <div className="legend-line pred"></div>
+                                <span>預測趨勢</span>
+                            </div>
+                            <div className="legend-item">
+                                <div className="legend-line thresh"></div>
+                                <span>警戒線 {THRESHOLD_KW} kW</span>
                             </div>
                         </div>
-                    )}
+                    </div>
 
                     <div className="groups-grid">
                         {Object.entries(devices.groups || {}).map(([group, devs]) => (
