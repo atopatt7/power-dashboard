@@ -91,6 +91,8 @@ class APIHandler(BaseHTTPRequestHandler):
             self._handle_devices()
         elif path == "/api/health":
             self._handle_health()
+        elif path == "/api/peak-forecast":
+            self._handle_peak_forecast(params)
         elif path == "/api/config":
             self._handle_get_config()
         elif path == "/" or path == "/index.html":
@@ -113,6 +115,17 @@ class APIHandler(BaseHTTPRequestHandler):
             self._serve_file(filename, ct)
         else:
             self._send_404()
+
+    def _handle_peak_forecast(self, params):
+        try:
+            from forecast import get_forecast
+            threshold = float(params.get("threshold", [700])[0])
+            hours     = int(params.get("hours", [4])[0])
+            result    = get_forecast(threshold=threshold, hours=hours)
+            self._send_json(result)
+        except Exception as e:
+            logger.error(f"Forecast error: {e}")
+            self._send_json({"error": str(e)}, 500)
 
     def _handle_power_history(self, params):
         device = params.get("device", [None])[0]
@@ -156,9 +169,9 @@ class APIHandler(BaseHTTPRequestHandler):
         config["powerbi_password"] = "••••••••" if config.get("powerbi_password") else ""
         self._send_json(config)
 
-    def _send_json(self, obj):
+    def _send_json(self, obj, status=200):
         body = json.dumps(obj, ensure_ascii=False).encode("utf-8")
-        self.send_response(200)
+        self.send_response(status)
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Access-Control-Allow-Origin", "*")
         self.send_header("Content-Length", str(len(body)))

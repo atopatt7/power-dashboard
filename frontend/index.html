@@ -219,6 +219,57 @@
         .metric-unit { font-size: 9px; color: var(--text-secondary); letter-spacing: 2px; margin-top: 3px; text-transform: uppercase; }
         .device-chart { position: relative; height: 190px; margin-top: 12px; }
 
+        /* ── FORECAST CARD ── */
+        .forecast-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 20px 24px 16px;
+            margin-bottom: 20px;
+            position: relative;
+        }
+        .forecast-card::before {
+            content: '';
+            position: absolute; top: 0; left: 0; right: 0; height: 2px;
+            background: linear-gradient(90deg, transparent 5%, #ff9500 35%, #ff6b00 65%, transparent 95%);
+            opacity: 0.7;
+        }
+        .forecast-header {
+            display: flex; align-items: center; justify-content: space-between;
+            margin-bottom: 14px;
+        }
+        .forecast-title {
+            font-family: 'Orbitron', monospace; font-size: 11px; font-weight: 700;
+            letter-spacing: 3px; text-transform: uppercase; color: #ff9500;
+            text-shadow: 0 0 8px rgba(255, 149, 0, 0.5);
+        }
+        .forecast-meta {
+            font-family: 'Courier New', monospace; font-size: 10px;
+            color: var(--text-secondary); letter-spacing: 1px;
+        }
+        .forecast-alert {
+            display: flex; align-items: center; gap: 10px;
+            background: rgba(255, 51, 85, 0.12);
+            border: 1px solid rgba(255, 51, 85, 0.4);
+            border-radius: 3px; padding: 10px 14px; margin-bottom: 14px;
+            font-size: 13px; color: #ff6680; letter-spacing: 0.5px;
+        }
+        .forecast-alert-dot {
+            width: 8px; height: 8px; border-radius: 50%;
+            background: #ff3355;
+            box-shadow: 0 0 6px #ff3355, 0 0 14px rgba(255,51,85,0.5);
+            animation: statusPulse 1.5s ease-in-out infinite; flex-shrink: 0;
+        }
+        .forecast-legend {
+            display: flex; align-items: center; gap: 20px;
+            margin-top: 10px; font-size: 11px; color: var(--text-secondary);
+        }
+        .legend-item { display: flex; align-items: center; gap: 6px; }
+        .legend-line { width: 28px; height: 2px; border-radius: 1px; }
+        .legend-line.hist  { background: #00aaff; }
+        .legend-line.pred  { background: #ff9500; border-top: 2px dashed #ff9500; height: 0; }
+        .legend-line.thresh{ background: transparent; border-top: 2px dashed rgba(255,51,85,0.7); height: 0; }
+
         @media (max-width: 768px) {
             .groups-grid      { grid-template-columns: 1fr; }
             .devices-list     { grid-template-columns: 1fr; }
@@ -242,6 +293,7 @@
         const { useState, useEffect, useRef, useMemo } = React;
 
         const API_BASE = window.location.origin;
+        const THRESHOLD_KW = 700; // 警戒閾值 kW
         const GROUP_ICONS = {
             "全廠": "🏭", "高壓盤": "⚡", "洗砂設備": "🌊",
             "集塵設備": "💨", "空壓設備": "🔵", "電爐設備": "🔥",
@@ -397,6 +449,189 @@
                 ctx.restore();
             }
         };
+
+        // Threshold line: red horizontal dashed line at threshold kW
+        const thresholdPlugin = {
+            id: 'thresholdLine',
+            afterDraw(chart) {
+                const thr = chart.config.options._threshold;
+                if (!thr) return;
+                const { ctx, chartArea, scales } = chart;
+                const y = scales.y.getPixelForValue(thr);
+                if (y < chartArea.top || y > chartArea.bottom) return;
+                ctx.save();
+                ctx.strokeStyle = 'rgba(255, 51, 85, 0.75)';
+                ctx.lineWidth = 1.5;
+                ctx.setLineDash([6, 4]);
+                ctx.beginPath();
+                ctx.moveTo(chartArea.left, y);
+                ctx.lineTo(chartArea.right, y);
+                ctx.stroke();
+                ctx.setLineDash([]);
+                ctx.fillStyle = 'rgba(255, 51, 85, 0.85)';
+                ctx.font = '10px Courier New';
+                ctx.textAlign = 'right';
+                ctx.fillText('警戒 ' + thr + ' kW', chartArea.right - 4, y - 4);
+                ctx.restore();
+            }
+        };
+
+        // ── ForecastChart component ───────────────────────────────────
+        // historicalData: [{label:"HH:MM", value}]  (today's 5-min averages)
+        // forecastData:   [{time:"HH:MM", minute, value, over_threshold}]
+        // threshold: number (draws horizontal alert line)
+
+        function ForecastChart({ historicalData, forecastData, threshold = 700, height = 280 }) {
+            const canvasRef  = useRef(null);
+            const chartRef   = useRef(null);
+            const tooltipRef = useRef(null);
+
+            useEffect(() => {
+                if (!canvasRef.current) return;
+                const ctx = canvasRef.current.getContext('2d');
+                if (chartRef.current) chartRef.current.destroy();
+
+                const histPoints = (historicalData || []).map(d => ({
+                    x: timeToMinutes(d.label), y: d.value
+                }));
+                const predPoints = (forecastData || []).map(d => ({
+                    x: d.minute, y: d.value
+                }));
+
+                // Find connection point: last historical point → first forecast point
+                const connectorPoints = [];
+                if (histPoints.length > 0 && predPoints.length > 0) {
+                    connectorPoints.push(histPoints[histPoints.length - 1]);
+                    connectorPoints.push(predPoints[0]);
+                }
+
+                chartRef.current = new Chart(ctx, {
+                    type: 'line',
+                    plugins: [glowPlugin, crosshairPlugin, thresholdPlugin],
+                    data: {
+                        datasets: [
+                            {
+                                label: '今日用電 (kW)',
+                                data: histPoints,
+                                borderColor: '#00aaff',
+                                backgroundColor: 'rgba(0, 170, 255, 0.07)',
+                                borderWidth: 2,
+                                pointRadius: 0,
+                                tension: 0.35,
+                                fill: true,
+                                order: 2,
+                            },
+                            {
+                                label: '未來預測 (kW)',
+                                data: predPoints,
+                                borderColor: '#ff9500',
+                                backgroundColor: 'rgba(255, 149, 0, 0.07)',
+                                borderWidth: 2,
+                                borderDash: [8, 4],
+                                pointRadius: 0,
+                                tension: 0.35,
+                                fill: true,
+                                order: 1,
+                            },
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        animation: false,
+                        _threshold: threshold,
+                        interaction: { mode: 'index', intersect: false },
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: { enabled: false },
+                        },
+                        scales: {
+                            x: {
+                                type: 'linear', min: 0, max: 1439,
+                                ticks: {
+                                    stepSize: 120,
+                                    color: '#3a6080', font: { size: 10, family: 'Courier New' },
+                                    callback: v => minutesToHHMM(v),
+                                    maxRotation: 0,
+                                },
+                                grid: { color: 'rgba(0, 200, 180, 0.06)' },
+                                border: { color: 'rgba(0, 200, 180, 0.15)' },
+                            },
+                            y: {
+                                ticks: { color: '#3a6080', font: { size: 10, family: 'Courier New' }, callback: v => v + ' kW' },
+                                grid: { color: 'rgba(0, 200, 180, 0.06)' },
+                                border: { color: 'rgba(0, 200, 180, 0.15)' },
+                                beginAtZero: true,
+                            }
+                        }
+                    }
+                });
+
+                // Mouse crosshair + tooltip
+                const canvas = canvasRef.current;
+                const onMouseMove = (e) => {
+                    const rect = canvas.getBoundingClientRect();
+                    const chart = chartRef.current;
+                    if (!chart) return;
+                    const mx = e.clientX - rect.left;
+                    const { chartArea, scales } = chart;
+                    if (mx < chartArea.left || mx > chartArea.right) {
+                        chart._crosshair = null;
+                        if (tooltipRef.current) tooltipRef.current.style.display = 'none';
+                        chart.draw(); return;
+                    }
+                    const xVal = scales.x.getValueForPixel(mx);
+                    // Find nearest point across both datasets
+                    let nearest = null, minDist = Infinity;
+                    chart.data.datasets.forEach(ds => {
+                        (ds.data || []).forEach(pt => {
+                            const d = Math.abs(pt.x - xVal);
+                            if (d < minDist) { minDist = d; nearest = pt; }
+                        });
+                    });
+                    if (!nearest) return;
+                    const px = scales.x.getPixelForValue(nearest.x);
+                    const py = scales.y.getPixelForValue(nearest.y);
+                    chart._crosshair = { x: px, y: py };
+                    chart.draw();
+                    if (tooltipRef.current) {
+                        const tip = tooltipRef.current;
+                        const label = minutesToHHMM(nearest.x);
+                        const isOver = nearest.y > threshold;
+                        tip.style.display = 'block';
+                        tip.innerHTML = `<span style="font-family:'Orbitron',monospace;font-size:14px;color:${isOver ? '#ff6680' : '#00f5d4'};font-weight:700;">${nearest.y.toFixed(1)}</span><span style="font-size:10px;color:#3a6080;"> kW</span><br><span style="font-size:10px;color:#3a6080;font-family:'Courier New',monospace;">${label}</span>`;
+                        let tx = px + 12, ty = py - 40;
+                        if (tx + 115 > chartArea.right + 20) tx = px - 129;
+                        if (ty < chartArea.top) ty = py + 8;
+                        tip.style.left = tx + 'px';
+                        tip.style.top  = ty + 'px';
+                    }
+                };
+                const onMouseLeave = () => {
+                    if (chartRef.current) { chartRef.current._crosshair = null; chartRef.current.draw(); }
+                    if (tooltipRef.current) tooltipRef.current.style.display = 'none';
+                };
+                canvas.addEventListener('mousemove', onMouseMove);
+                canvas.addEventListener('mouseleave', onMouseLeave);
+                return () => {
+                    canvas.removeEventListener('mousemove', onMouseMove);
+                    canvas.removeEventListener('mouseleave', onMouseLeave);
+                    if (chartRef.current) { chartRef.current.destroy(); chartRef.current = null; }
+                };
+            }, [historicalData, forecastData, threshold]);
+
+            return (
+                <div style={{ position: 'relative', height: `${height}px` }}>
+                    <canvas ref={canvasRef} style={{ cursor: 'crosshair', display: 'block' }} />
+                    <div ref={tooltipRef} style={{
+                        display: 'none', position: 'absolute', pointerEvents: 'none',
+                        background: 'rgba(2, 6, 18, 0.92)', border: '1px solid rgba(0, 200, 180, 0.35)',
+                        borderRadius: '3px', padding: '8px 12px', minWidth: '110px',
+                        backdropFilter: 'blur(8px)', lineHeight: '1.5',
+                    }} />
+                </div>
+            );
+        }
 
         // ── LineChart component ───────────────────────────────────────
         // data: [{ timestamp, label:"HH:MM", value }]
@@ -566,6 +801,7 @@
             const [devices, setDevices]     = useState({});
             const [latest, setLatest]       = useState([]);
             const [chartData, setChartData] = useState({});
+            const [forecastResult, setForecastResult] = useState(null);
             const lastTsRef    = useRef(null);
             const rtBucketRef  = useRef(null); // { bucket, sums:{key→n}, counts:{key→n} }
 
@@ -574,6 +810,19 @@
                 fetch(`${API_BASE}/api/devices`)
                     .then(r => r.json()).then(d => setDevices(d))
                     .catch(e => console.error(e));
+            }, []);
+
+            // Fetch forecast every 5 minutes
+            useEffect(() => {
+                const fetchForecast = () => {
+                    fetch(`${API_BASE}/api/peak-forecast?threshold=${THRESHOLD_KW}&hours=4`)
+                        .then(r => r.json())
+                        .then(d => { if (!d.error) setForecastResult(d); })
+                        .catch(() => {});
+                };
+                fetchForecast();
+                const iv = setInterval(fetchForecast, 5 * 60 * 1000);
+                return () => clearInterval(iv);
             }, []);
 
             // Poll latest every 10 s
@@ -739,6 +988,49 @@
                             )}
                         </div>
                     </div>
+
+                    {/* ── 尖峰預測卡片 ── */}
+                    {forecastResult && (
+                        <div className="forecast-card">
+                            <div className="forecast-header">
+                                <div className="forecast-title">🔮 尖峰預測 — 未來 4 小時</div>
+                                <div className="forecast-meta">
+                                    更新於 {forecastResult.generated_at?.slice(11,16)} ·
+                                    修正係數 ×{forecastResult.correction_ratio}
+                                </div>
+                            </div>
+
+                            {forecastResult.forecast?.some(f => f.over_threshold) && (
+                                <div className="forecast-alert">
+                                    <div className="forecast-alert-dot"></div>
+                                    預測 {forecastResult.forecast.filter(f => f.over_threshold).length * 5} 分鐘
+                                    內超過警戒值 {THRESHOLD_KW} kW，建議提前調度高耗電設備至離峰時段
+                                </div>
+                            )}
+
+                            <ForecastChart
+                                historicalData={chartData.factory || []}
+                                forecastData={forecastResult.forecast || []}
+                                threshold={THRESHOLD_KW}
+                                height={280}
+                            />
+
+                            <div className="forecast-legend">
+                                <div className="legend-item">
+                                    <div className="legend-line hist"></div>
+                                    <span>今日用電</span>
+                                </div>
+                                <div className="legend-item">
+                                    <div className="legend-line pred"></div>
+                                    <span>預測趨勢</span>
+                                </div>
+                                <div className="legend-item">
+                                    <div className="legend-line thresh"></div>
+                                    <span>警戒線 {THRESHOLD_KW} kW</span>
+                                </div>
+                            </div>
+                        </div>
+                    )}
 
                     <div className="groups-grid">
                         {Object.entries(devices.groups || {}).map(([group, devs]) => (
