@@ -7,6 +7,16 @@ Algorithm:
      correction ratio  (actual_avg / historical_avg for the same window).
   3. Apply correction to next FORECAST_HOURS of 5-minute medians.
   4. Return forecast list + metadata.
+
+Historical data sources (used to build bucket_stats.json):
+  - data/historical.xlsx   2026-02-07 ~ 2026-02-25
+  - data/historical2.xlsx  2026-02-14 ~ 2026-03-05
+
+Excluded holidays (special/non-representative periods):
+  - 2026-02-13 ~ 2026-02-23  (公司春節假期)
+
+To rebuild bucket_stats.json after adding new data:
+  python rebuild_stats.py
 """
 
 import json
