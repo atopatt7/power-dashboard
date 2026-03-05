@@ -115,20 +115,19 @@ def fetch_power_readings(config: dict) -> list[dict]:
         return []
 
     readings = []
+    # Always use current UTC time as the insert timestamp.
+    # The PowerBI timestamp may be stale (streaming datasets retain old rows),
+    # but we want the chart to show "we measured X kW just now".
     now_iso = datetime.utcnow().isoformat()
     for row in rows:
         # Simple TOPN (no SELECTCOLUMNS) returns keys as "TableName[ColumnName]".
         # e.g. "RealTimeData[時間]", "RealTimeData[全廠總用電]"
-        ts  = (row.get(f"{TABLE_NAME}[{TIME_COLUMN}]")
-               or row.get(f"[{TIME_COLUMN}]")
-               or row.get("timestamp")
-               or now_iso)
         val = (row.get(f"{TABLE_NAME}[{VALUE_COLUMN}]")
                or row.get(f"[{VALUE_COLUMN}]")
                or row.get("value")
                or 0)
         readings.append({
-            "timestamp":   str(ts),
+            "timestamp":   now_iso,   # current UTC time (not stale PowerBI timestamp)
             "device_name": DEVICE_NAME,
             "value":       float(val),
         })
