@@ -49,8 +49,14 @@ class DataPoller(threading.Thread):
                 if use_mock:
                     readings = generate_mock_readings()
                 else:
-                    # TODO: Import and call Power BI client with config
-                    readings = generate_mock_readings()
+                    try:
+                        from powerbi_client import fetch_power_readings
+                        readings = fetch_power_readings(config)
+                        if not readings:
+                            logger.warning("PowerBI returned no readings — skipping insert")
+                    except Exception as pbi_err:
+                        logger.error(f"PowerBI fetch failed: {pbi_err}")
+                        readings = []  # keep existing DB rows; don't overwrite with mock
 
                 insert_readings(readings)
                 logger.info(f"Inserted {len(readings)} readings")
@@ -261,30 +267,37 @@ class APIHandler(BaseHTTPRequestHandler):
             self._send_json({"success": False, "error": "切換失敗"}, 500)
 
     def _handle_test_connection(self, data):
-        """Test Power BI connection."""
+        """Test Power BI connection — actually authenticates via MSAL."""
         try:
-            # TODO: 實現真正的 Power BI 連接測試
-            # 目前只做驗證
             config = {
                 "powerbi_client_id": data.get("powerbi_client_id", ""),
                 "powerbi_tenant_id": data.get("powerbi_tenant_id", ""),
-                "powerbi_username": data.get("powerbi_username", ""),
-                "powerbi_password": data.get("powerbi_password", ""),
+                "powerbi_username":  data.get("powerbi_username", ""),
+                "powerbi_password":  data.get("powerbi_password", ""),
                 "powerbi_dataset_id": data.get("powerbi_dataset_id", ""),
-                "powerbi_group_id": data.get("powerbi_group_id", ""),
+                "powerbi_group_id":  data.get("powerbi_group_id", ""),
             }
 
+            # First validate fields are not empty
             is_valid, errors = validate_powerbi_config(config)
-            if is_valid:
-                self._send_json({
-                    "success": True,
-                    "message": "設定驗證通過。實際連接將在啟用 Power BI 模式時進行。"
-                })
-            else:
+            if not is_valid:
+                self._send_json({"success": False, "error": "; ".join(errors)}, 400)
+                return
+
+            # Actually attempt MSAL authentication
+            try:
+                from powerbi_client import test_connection
+                ok, msg = test_connection(config)
+                if ok:
+                    self._send_json({"success": True, "message": msg})
+                else:
+                    self._send_json({"success": False, "error": msg}, 400)
+            except ImportError:
                 self._send_json({
                     "success": False,
-                    "error": "; ".join(errors)
-                }, 400)
+                    "error": "msal / httpx 套件未安裝，請先執行 pip install msal httpx"
+                }, 500)
+
         except Exception as e:
             self._send_json({"success": False, "error": str(e)}, 500)
 
