@@ -547,11 +547,15 @@
                         },
                         scales: {
                             x: {
-                                type: 'linear', min: 0, max: 1439,
+                                type: 'linear', min: 0, max: 1440,
                                 ticks: {
-                                    stepSize: 120,
+                                    stepSize: 60,
                                     color: '#3a6080', font: { size: 10, family: 'Courier New' },
-                                    callback: v => minutesToHHMM(v),
+                                    callback: v => {
+                                        const m = Math.round(v);
+                                        if (m % 60 !== 0) return '';
+                                        return minutesToHHMM(m);
+                                    },
                                     maxRotation: 0,
                                 },
                                 grid: { color: 'rgba(0, 200, 180, 0.06)' },
@@ -637,7 +641,7 @@
         // data: [{ timestamp, label:"HH:MM", value }]
         // X-axis is always 00:00–23:59 (linear, 0–1439 minutes)
 
-        function LineChart({ data, height = 280, maxTicks = 12 }) {
+        function LineChart({ data, height = 280, maxTicks = 12, showCrosshair = false }) {
             const canvasRef  = useRef(null);
             const chartRef   = useRef(null);
             const tooltipRef = useRef(null);
@@ -653,9 +657,11 @@
                     ? data.map(d => ({ x: timeToMinutes(d.label), y: d.value }))
                     : [];
 
+                const plugins = showCrosshair ? [glowPlugin, crosshairPlugin] : [glowPlugin];
+
                 chartRef.current = new Chart(ctx, {
                     type: 'line',
-                    plugins: [glowPlugin, crosshairPlugin],
+                    plugins: plugins,
                     data: {
                         datasets: [{
                             label: '功率 (kW)',
@@ -674,20 +680,24 @@
                         animation: false,
                         plugins: {
                             legend: { display: false },
-                            tooltip: { enabled: false },  // custom HTML tooltip below
+                            tooltip: { enabled: false },
                         },
                         scales: {
                             x: {
                                 type: 'linear',
                                 min: 0,
-                                max: 1439,           // 23:59
+                                max: 1440,           // 24:00 so last tick 23:00 shows cleanly
                                 grid: { color: 'rgba(0, 200, 180, 0.06)' },
                                 ticks: {
                                     color: '#3a6080',
                                     font: { size: 10 },
-                                    stepSize: 120,       // tick every 2 h
+                                    stepSize: 60,        // generate a tick every hour
                                     maxTicksLimit: maxTicks,
-                                    callback: (val) => minutesToHHMM(val),
+                                    callback: (val) => {
+                                        const m = Math.round(val);
+                                        if (m % 60 !== 0) return '';   // hide non-hour ticks
+                                        return minutesToHHMM(m);
+                                    },
                                 }
                             },
                             y: {
@@ -766,31 +776,35 @@
                     if (tooltip) tooltip.style.display = 'none';
                 };
 
-                canvas.addEventListener('mousemove', onMouseMove);
-                canvas.addEventListener('mouseleave', onMouseLeave);
+                if (showCrosshair) {
+                    canvas.addEventListener('mousemove', onMouseMove);
+                    canvas.addEventListener('mouseleave', onMouseLeave);
+                }
 
                 return () => {
                     canvas.removeEventListener('mousemove', onMouseMove);
                     canvas.removeEventListener('mouseleave', onMouseLeave);
                     if (chartRef.current) chartRef.current.destroy();
                 };
-            }, [data]);
+            }, [data, showCrosshair]);
 
             return (
                 <div style={{ position: 'relative', height: `${height}px` }}>
-                    <canvas ref={canvasRef} style={{ cursor: 'crosshair', display: 'block' }} />
-                    <div ref={tooltipRef} style={{
-                        display: 'none',
-                        position: 'absolute',
-                        background: 'rgba(2, 10, 28, 0.96)',
-                        border: '1px solid rgba(0, 245, 212, 0.45)',
-                        borderRadius: '3px',
-                        padding: '9px 13px',
-                        pointerEvents: 'none',
-                        zIndex: 20,
-                        minWidth: '100px',
-                        boxShadow: '0 0 14px rgba(0, 245, 212, 0.2)',
-                    }} />
+                    <canvas ref={canvasRef} style={{ cursor: showCrosshair ? 'crosshair' : 'default', display: 'block' }} />
+                    {showCrosshair && (
+                        <div ref={tooltipRef} style={{
+                            display: 'none',
+                            position: 'absolute',
+                            background: 'rgba(2, 10, 28, 0.96)',
+                            border: '1px solid rgba(0, 245, 212, 0.45)',
+                            borderRadius: '3px',
+                            padding: '9px 13px',
+                            pointerEvents: 'none',
+                            zIndex: 20,
+                            minWidth: '100px',
+                            boxShadow: '0 0 14px rgba(0, 245, 212, 0.2)',
+                        }} />
+                    )}
                 </div>
             );
         }
@@ -982,7 +996,7 @@
                         <div className="unit-label">kW</div>
                         <div className="chart-container">
                             {chartData.factory ? (
-                                <LineChart data={chartData.factory} height={258} maxTicks={12} />
+                                <LineChart data={chartData.factory} height={258} maxTicks={12} showCrosshair={true} />
                             ) : (
                                 <div className="loading">載入圖表資料...</div>
                             )}
@@ -1209,7 +1223,7 @@
                         <div className="unit-label">kW</div>
                         <div className="chart-container">
                             {groupData.length >= 0 ? (
-                                <LineChart data={groupData} height={258} maxTicks={12} />
+                                <LineChart data={groupData} height={258} maxTicks={12} showCrosshair={true} />
                             ) : (
                                 <div className="loading">載入圖表資料...</div>
                             )}
