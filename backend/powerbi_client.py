@@ -85,14 +85,18 @@ def fetch_power_readings(config: dict) -> list[dict]:
         f"/datasets/{dataset_id}/executeQueries"
     )
 
-    # Push/Streaming datasets only support simple DAX — no SELECTCOLUMNS.
-    # TOPN(n, table, orderCol, 0) → 0 = DESC (most recent first).
+    # Use FILTER + MAXX to get the row with the most recent timestamp.
+    # More reliable than TOPN ordering on push/streaming datasets.
     dax_query = {
         "queries": [
             {
                 "query": (
-                    f"EVALUATE TOPN(1, '{TABLE_NAME}', "
-                    f"'{TABLE_NAME}'[{TIME_COLUMN}], 0)"
+                    f"EVALUATE "
+                    f"FILTER("
+                    f"  '{TABLE_NAME}', "
+                    f"  '{TABLE_NAME}'[{TIME_COLUMN}] = "
+                    f"  MAXX('{TABLE_NAME}', '{TABLE_NAME}'[{TIME_COLUMN}])"
+                    f")"
                 )
             }
         ],
@@ -132,7 +136,11 @@ def fetch_power_readings(config: dict) -> list[dict]:
             "value":       float(val),
         })
 
-    logger.info(f"PowerBI: fetched {len(readings)} reading(s), latest value={readings[0]['value']:.1f} kW")
+    pbi_ts = rows[0].get(f"{TABLE_NAME}[{TIME_COLUMN}]", "unknown")
+    logger.info(
+        f"PowerBI: value={readings[0]['value']:.1f} kW  "
+        f"(PowerBI timestamp={pbi_ts})"
+    )
     return readings
 
 

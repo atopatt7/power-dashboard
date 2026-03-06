@@ -983,6 +983,9 @@
                 };
 
                 loadHistory();
+                // Refresh full history every 5 minutes so the chart stays current
+                const refreshIv = setInterval(loadHistory, 5 * 60 * 1000);
+                return () => clearInterval(refreshIv);
             }, [devices.groups]);
 
             // Real-time update: 5-minute rolling average
