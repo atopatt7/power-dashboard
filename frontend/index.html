@@ -547,8 +547,15 @@
                             if (v >= xMin && v <= xMax) ticks.unshift({ value: v });
                         }
                     } else {
-                        let t = Math.ceil(xMin / tickStep) * tickStep;
-                        while (t <= xMax) { ticks.push({ value: t }); t += tickStep; }
+                        // Align to absolute Taiwan-time boundaries (整點 / 整半點).
+                        // Convert relative range → absolute Taiwan minutes-of-day,
+                        // snap to nearest tickStep multiple, then convert back to relative.
+                        const absStart     = nowMinOfDay + xMin;
+                        const absEnd       = nowMinOfDay + xMax;
+                        const firstAbsTick = Math.ceil(absStart / tickStep) * tickStep;
+                        for (let absTick = firstAbsTick; absTick <= absEnd; absTick += tickStep) {
+                            ticks.push({ value: absTick - nowMinOfDay });
+                        }
                     }
                     axis.ticks = ticks;
                 };

@@ -9,9 +9,10 @@ import threading
 import time
 import os
 import sys
+import random
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from config import (
     POLL_INTERVAL_SECONDS,
@@ -29,6 +30,48 @@ logger = logging.getLogger(__name__)
 
 # ─── Determine frontend path ─────────────────────────────────
 FRONTEND_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "frontend")
+
+
+# ─── Warm-up history for PowerBI mode ────────────────────────
+def generate_warmup_readings() -> list[dict]:
+    """Generate full-day history for 全廠總用電 using bucket_stats baseline.
+
+    Called at startup when use_mock_data=False so the chart has a full-day
+    historical line from the moment the server starts, instead of an empty chart
+    that slowly fills up one reading every 10 seconds.
+    """
+    stats_path = os.path.join(os.path.dirname(__file__), "data", "bucket_stats.json")
+    try:
+        with open(stats_path, encoding="utf-8") as f:
+            bucket_stats = json.load(f)
+    except Exception:
+        bucket_stats = {}
+
+    now_utc  = datetime.utcnow()
+    now_tw   = now_utc + timedelta(hours=8)
+    # Taiwan midnight → UTC midnight equivalent
+    midnight_tw  = now_tw.replace(hour=0, minute=0, second=0, microsecond=0)
+    midnight_utc = midnight_tw - timedelta(hours=8)
+
+    readings = []
+    current  = midnight_utc
+    while current < now_utc:
+        tw_min   = int(((current + timedelta(hours=8)).hour * 60
+                        + (current + timedelta(hours=8)).minute) / 5) * 5
+        tw_min   = tw_min % 1440
+        stats    = bucket_stats.get(str(tw_min), {})
+        median   = stats.get("median") or stats.get("mean") or 200.0
+        # Add ±3% noise so the chart looks natural
+        value    = round(median * random.uniform(0.97, 1.03), 2)
+        readings.append({
+            "timestamp":   current.isoformat(),
+            "device_name": "全廠總用電",
+            "value":       value,
+        })
+        current += timedelta(minutes=5)
+
+    logger.info(f"Warm-up: generated {len(readings)} historical readings from bucket_stats")
+    return readings
 
 
 # ─── Background data poller ──────────────────────────────────
@@ -339,9 +382,13 @@ def main():
     logger.info("Config file location: powerbi_config.json")
 
     # Insert initial data
-    readings = generate_mock_readings()
+    if use_mock:
+        readings = generate_mock_readings()
+        logger.info(f"Mock mode: inserting {len(readings)} mock readings")
+    else:
+        readings = generate_warmup_readings()
+        logger.info(f"PowerBI mode: inserting {len(readings)} warm-up readings from bucket_stats")
     insert_readings(readings)
-    logger.info(f"Initial {len(readings)} readings inserted")
 
     # Start background poller
     poller = DataPoller()
